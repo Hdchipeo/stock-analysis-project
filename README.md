@@ -69,5 +69,3 @@ streamlit run src/web_dashboard.py
 -   [Walkthrough Report](docs/Walkthrough_Report.md)
 
 ---
-**Author**: Đặng Minh Tâm  
-**Date**: January 2026
