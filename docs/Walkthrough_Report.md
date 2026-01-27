@@ -50,7 +50,7 @@ Giai đoạn này xử lý dữ liệu thô thành định dạng sẵn sàng ch
 - **Interpolation**: Sử dụng nội suy tuyến tính để đảm bảo tính liên tục của chuỗi thời gian.
 - **Isolation Forest**: Sử dụng thuật toán Isolation Forest để phát hiện các điểm bất thường (nhiễu thị trường).
 
-![Biểu đồ ngoại lai](/Users/dangminhtam/Đồán_PTDL/results/figures/outliers.png)
+![Biểu đồ ngoại lai](../results/figures/outliers.png)
 
 ### 2. Kỹ thuật đặc trưng (Feature Engineering)
 Đã tạo các tín hiệu kỹ thuật để tăng khả năng dự báo:
@@ -71,7 +71,7 @@ Giai đoạn này giúp hiểu sâu hơn về cấu trúc dữ liệu và các m
 ### 1. Phân tích Xu hướng (Trend Analysis)
 Biểu đồ Candlestick kết hợp với đường trung bình động MA30 và Khối lượng giao dịch.
 
-![Trend Analysis](/Users/dangminhtam/Đồán_PTDL/results/figures/trend_analysis.png)
+![Trend Analysis](../results/figures/trend_analysis.png)
 
 > [!NOTE]
 > Đường MA30 giúp làm mượt xu hướng giá ngắn hạn, cho thấy rõ các chu kỳ tăng/giảm giá của cổ phiếu.
@@ -79,7 +79,7 @@ Biểu đồ Candlestick kết hợp với đường trung bình động MA30 v�
 ### 2. Phân tích Phân phối (Distribution Analysis)
 Histogram và KDE của `Log Returns` cho thấy phân phối có dạng hình chuông nhưng có phần đuôi dài (Fat Tails).
 
-![Distribution Analysis](/Users/dangminhtam/Đồán_PTDL/results/figures/distribution_analysis.png)
+![Distribution Analysis](../results/figures/distribution_analysis.png)
 
 > [!IMPORTANT]
 > **Fat Tails (Đuôi béo)**: Đồ thị cho thấy xác suất xảy ra các biến động lớn (tiêu cực hoặc tích cực) cao hơn so với phân phối chuẩn. Đây là đặc điểm rủi ro điển hình của tài chính.
@@ -87,7 +87,7 @@ Histogram và KDE của `Log Returns` cho thấy phân phối có dạng hình c
 ### 3. Phân tích Tương quan (Correlation Analysis)
 Heatmap thể hiện mối tương quan giữa các biến.
 
-![Correlation Heatmap](/Users/dangminhtam/Đồán_PTDL/results/figures/correlation_heatmap.png)
+![Correlation Heatmap](../results/figures/correlation_heatmap.png)
 
 - **Volume vs Price**: Tương quan thường thấp, cho thấy khối lượng không biến động tuyến tính hoàn toàn theo giá.
 - **Indicators**: Các đường MA có tương quan rất cao với giá Close, điều này là hiển nhiên nhưng cần lưu ý để tránh đa cộng tuyến.
@@ -95,7 +95,7 @@ Heatmap thể hiện mối tương quan giữa các biến.
 ### 4. Phân tích Mùa vụ (Seasonality Analysis)
 Boxplot theo Tháng và Ngày trong tuần.
 
-![Seasonality Analysis](/Users/dangminhtam/Đồán_PTDL/results/figures/seasonality_analysis.png)
+![Seasonality Analysis](../results/figures/seasonality_analysis.png)
 
 - Nhận diện các tháng có khối lượng giao dịch đột biến hoặc sụt giảm.
 - Kiểm tra hiệu ứng ngày trong tuần (ví dụ: Thứ Hai hoặc Thứ Sáu thường có biến động lạ).
@@ -119,12 +119,12 @@ Kết quả đánh giá trên tập Test (20% dữ liệu cuối):
 ### 2. Biểu đồ Thực tế vs. Dự báo
 Hình ảnh so sánh giá dự báo và giá thực tế trong 100 phiên gần nhất.
 
-![Model Comparison](/Users/dangminhtam/Đồán_PTDL/results/figures/model_comparison.png)
+![Model Comparison](../results/figures/model_comparison.png)
 
 ### 3. Phân tích Tầm quan trọng của Đặc trưng (Feature Importance)
 XGBoost đánh giá mức độ quan trọng của các biến đầu vào.
 
-![Feature Importance](/Users/dangminhtam/Đồán_PTDL/results/figures/feature_importance.png)
+![Feature Importance](../results/figures/feature_importance.png)
 
 - Biểu đồ này giúp trả lời: **Volume có quan trọng không?** và **Chỉ báo kỹ thuật nào (RSI, MACD) ảnh hưởng lớn nhất đến giá?**
 
@@ -158,7 +158,7 @@ python3 main.py
 ### 1. Dashboard Quản trị
 Tổng hợp kết quả phân tích trong một Dashboard duy nhất:
 
-![Dashboard](/Users/dangminhtam/Đồán_PTDL/results/figures/dashboard.png)
+![Dashboard](../results/figures/dashboard.png)
 
 ### 2. Dashboard Tương tác (Interactive Web App)
 Đã xây dựng ứng dụng Web tương tác bằng **Streamlit** để phân tích sâu hơn:
