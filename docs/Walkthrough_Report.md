@@ -6,7 +6,7 @@ I have successfully collected historical stock data and generated the required v
 
 ### [Data Collection]
 
-- Created [collect_data.py](file:///Users/dangminhtam/Đồán_PTDL/src/collect_data.py) to fetch historical data for **AAPL** using `yfinance`.
+- Created [collect_data.py](file:///Users/dangminhtam/Đồán_PTDL/src/collect_data.py) to fetch historical data for **FPT.VN** using `yfinance`.
 - Data saved to [stock_data.csv](file:///Users/dangminhtam/Đồán_PTDL/data/raw/stock_data.csv).
 
 ### [Data Analysis]
@@ -172,12 +172,12 @@ streamlit run src/web_dashboard.py
 ```
 
 ### 3. Kết luận
-- **Mô hình**: **Linear Regression** và **BiLSTM** đều cho kết quả rất tốt trên tập dữ liệu này. BiLSTM được nâng cấp từ LSTM để học sự phụ thuộc hai chiều của chuỗi thời gian, đạt R2 > 0.99.
-- **Yếu tố ảnh hưởng**: Feature Importance cho thấy các biến trễ (Lag) và các đường trung bình động (MA) có ảnh hưởng lớn nhất đế giá. Khối lượng giao dịch (Volume) có ảnh hưởng nhưng thấp hơn so với xu hướng giá quá khứ.
+- **Mô hình**: **Linear Regression** cho kết quả rất tốt trên tập dữ liệu này ($R^2 > 0.99$), phù hợp với xu hướng tăng trưởng ổn định của FPT.VN.
+- **Yếu tố ảnh hưởng**: Feature Importance (từ XGBoost) cho thấy các biến trễ (Lag) và các đường trung bình động (MA) có ảnh hưởng lớn nhất đế giá. Khối lượng giao dịch (Volume) có ảnh hưởng thấp hơn so với xu hướng giá quá khứ.
 
 ### 3. Khuyến nghị Đầu tư
 > [!TIP]
-> **Chiến lược Kết hợp**: Sử dụng dự báo xu hướng từ mô hình BiLSTM làm tín hiệu chính. Kết hợp với chỉ báo RSI (nếu RSI > 70 bán, < 30 mua) để tối ưu điểm ra vào lệnh.
+> **Chiến lược Kết hợp**: Sử dụng dự báo xu hướng từ mô hình Linear Regression làm tín hiệu chính. Kết hợp với chỉ báo RSI (nếu RSI > 70 bán, < 30 mua) để tối ưu điểm ra vào lệnh.
 
 > [!WARNING]
 > **Quản trị Rủi ro**: Mặc dù mô hình có độ chính xác cao trên dữ liệu test, thị trường thực tế luôn có các sự kiện "Thiên nga đen". Nhà đầu tư nên đặt mức Stop-loss cố định (ví dụ 5-7%) và không tin tưởng tuyệt đối vào bất kỳ mô hình nào.

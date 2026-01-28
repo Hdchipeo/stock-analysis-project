@@ -38,7 +38,7 @@ metrics_df, preds_df, figures_dir = load_data()
 
 # --- TITLE & SIDEBAR ---
 st.title("📈 Stock Price Analysis & Prediction Dashboard")
-st.markdown("Professional analysis of **AAPL** stock using Machine Learning & Deep Learning models.")
+st.markdown("Professional analysis of **FPT.VN** stock using Machine Learning & Deep Learning models.")
 
 with st.sidebar:
     st.header("⚙️ Configuration")
@@ -88,8 +88,8 @@ if not preds_df.empty:
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Date", latest_date.strftime('%Y-%m-%d'))
-    col2.metric("Current Price", f"${last_actual:.2f}")
-    col3.metric("Daily Change", f"${daily_change:.2f}", f"{daily_change_pct:.2f}%")
+    col2.metric("Current Price", f"{last_actual:,.0f} VND")
+    col3.metric("Daily Change", f"{daily_change:,.0f} VND", f"{daily_change_pct:.2f}%")
     col4.metric("Model Signal", signal_val, delta_color=signal_color)
 
 # --- MAIN CHART ---
@@ -146,7 +146,7 @@ st.subheader("💡 Investment Recommendations & Conclusion")
 with st.expander("See Detailed Strategy", expanded=True):
     st.markdown("""
     ### 1. Strategy
-    *   **Trend Following**: Use the **BiLSTM** model to identify the major trend direction.
+    *   **Trend Following**: Use the **Linear Regression** model (or XGBoost) to identify the major trend direction.
     *   **Entry/Exit**: Refine signals using **RSI**.
         *   **Identify Buy**: Model predicts UP + RSI < 30 (Oversold).
         *   **Identify Sell**: Model predicts DOWN + RSI > 70 (Overbought).
@@ -156,5 +156,5 @@ with st.expander("See Detailed Strategy", expanded=True):
     *   Do not rely solely on the AI model; use it as a confirmation tool.
     
     ### 3. Conclusion
-    The **BiLSTM** model demonstrates superior performance ($R^2 > 0.99$) in capturing non-linear price patterns compared to traditional models.
+    The **Linear Regression** model demonstrates superior performance ($R^2 > 0.99$) in capturing the strong momentum of FPT.VN stock.
     """)

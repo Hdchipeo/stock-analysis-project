@@ -18,7 +18,7 @@ def main():
 
     # Phase 1: Data Collection
     print("\n--- [Phase 1] Data Collection ---")
-    collect_data.collect_stock_data(ticker="AAPL")
+    collect_data.collect_stock_data(ticker="FPT.VN")
     analyze_data.analyze_and_describe_variables()
 
     # Phase 2: Descriptive Statistics

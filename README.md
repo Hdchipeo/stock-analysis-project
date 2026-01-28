@@ -1,9 +1,9 @@
-# Stock Price Analysis & Prediction Project (AAPL)
+# Stock Price Analysis & Prediction Project (FPT.VN)
 
 ![Dashboard Preview](results/figures/dashboard.png)
 
 ## 📌 Introduction
-This project performs an in-depth analysis and prediction of Apple Inc. (AAPL) stock prices over a 5-year period. It leverages statistical analysis, Machine Learning (XGBoost), and Deep Learning (BiLSTM) to forecast future trends.
+This project performs an in-depth analysis and prediction of FPT Corp. (FPT.VN) stock prices over a 5-year period. It leverages statistical analysis and Machine Learning (XGBoost & Linear Regression) to forecast future trends.
 
 The project includes a complete pipeline: **Data Collection -> Preprocessing -> EDA -> Modeling -> Dashboarding**.
 
@@ -13,7 +13,6 @@ The project includes a complete pipeline: **Data Collection -> Preprocessing -> 
 -   **Multi-Model Forecasting**:
     -   **Linear Regression** (Baseline)
     -   **XGBoost** (Feature Importance Analysis)
-    -   **BiLSTM** (Bidirectional LSTM for Time Series)
 -   **Interactive Dashboard**: A Streamlit-based web app for real-time analysis and investment signals.
 
 ## 📂 Project Structure
@@ -57,11 +56,10 @@ streamlit run src/web_dashboard.py
 ## 📊 Results Overview
 | Model | RMSE | R2 Score |
 | :--- | :--- | :--- |
-| **Linear Regression** | 0.0053 | 0.9989 |
-| **BiLSTM** | 0.0080 | 0.9976 |
-| **XGBoost** | 0.0603 | 0.8632 |
+| **Linear Regression** | 0.0054 | 0.9953 |
+| **XGBoost** | 0.0152 | 0.9627 |
 
-> **Conclusion**: Both Linear Regression and BiLSTM perform exceptionally well, capturing the strong momentum in AAPL's stock price. The BiLSTM model is recommended for its ability to learn non-linear patterns.
+> **Conclusion**: Linear Regression performs exceptionally well (R2 > 0.99), indicating strong momentum in FPT.VN's stock price. XGBoost provides valuable insights into feature importance but with slightly lower accuracy.
 
 ## 📝 Documentation
 -   [Final Report (Full Analysis)](docs/Final_Report.md)

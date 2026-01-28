@@ -40,7 +40,7 @@ def create_dashboard(ticker="AAPL"):
     ax1.axis('off')
     
     # Title
-    ax1.text(0.0, 0.9, f"Stock Analysis Dashboard: {ticker}", fontsize=24, fontweight='bold', color='darkblue')
+    fig.suptitle('FPT.VN Stock Analysis Dashboard', fontsize=24, fontweight='bold', color='darkblue')
     ax1.text(0.0, 0.8, "Performance Metrics (Best Model Highlighted)", fontsize=14, color='gray')
     
     # Table Data

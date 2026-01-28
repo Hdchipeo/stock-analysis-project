@@ -89,27 +89,11 @@ def run_modeling(train_file="train_data.csv", test_file="test_data.csv"):
     plt.close() # Đóng figure để tránh conflict
     print("   - Saved 'feature_importance.png'")
 
-    # 4. Deep Learning Model: BiLSTM
-    print("\nTraining BiLSTM...")
-    # Reshape input for LSTM [Samples, Timesteps, Features]
-    # Ở đây Timesteps = 1 vì dữ liệu đã load dạng 2D (Features làm cột)
-    X_train_lstm = X_train.values.reshape((X_train.shape[0], 1, X_train.shape[1]))
-    X_test_lstm = X_test.values.reshape((X_test.shape[0], 1, X_test.shape[1]))
-
-    lstm_model = Sequential()
-    # Upgrade to Bidirectional LSTM
-    lstm_model.add(Bidirectional(LSTM(50, activation='relu'), input_shape=(1, X_train.shape[1])))
-    lstm_model.add(Dense(1))
-    lstm_model.compile(optimizer='adam', loss='mse')
-    
-    early_stop = EarlyStopping(monitor='val_loss', patience=10)
-    lstm_model.fit(X_train_lstm, y_train, epochs=100, batch_size=32, 
-                   validation_data=(X_test_lstm, y_test), 
-                   callbacks=[early_stop], verbose=0) # Tắt verbose cho gọn
-    
-    y_pred_lstm = lstm_model.predict(X_test_lstm)
-    predictions['BiLSTM'] = y_pred_lstm.flatten()
-    results.append(evaluate_metrics(y_test, y_pred_lstm.flatten(), "BiLSTM"))
+    # 4. BiLSTM Disabled (Due to environment constraints)
+    # print("\nTraining BiLSTM...")
+    # ... code removed ...
+    predictions['BiLSTM'] = 0 # Placeholder
+    # results.append(...) # Disabled
 
     # 5. Summarize Results & Save
     results_df = pd.DataFrame(results)

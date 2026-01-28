@@ -46,7 +46,7 @@ def preprocess_stock_data(filename="stock_data.csv"):
     plt.plot(df_clean.index, df_clean['Close'], label='Giá Close', color='blue', alpha=0.5)
     outliers = df_clean[df_clean['Outlier'] == -1]
     plt.scatter(outliers.index, outliers['Close'], color='red', label='Ngoại lai (Outliers)', zorder=5)
-    plt.title('Phát hiện ngoại lai bằng Isolation Forest (Mã AAPL)')
+    plt.title("Stock Price & Volume: FPT.VN", fontsize=16)
     plt.xlabel('Ngày')
     plt.ylabel('Giá Close')
     plt.legend()

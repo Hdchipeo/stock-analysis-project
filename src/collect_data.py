@@ -2,7 +2,7 @@ import yfinance as yf
 import pandas as pd
 import os
 
-def collect_stock_data(ticker="AAPL", period="5y", interval="1d"):
+def collect_stock_data(ticker="FPT.VN", period="5y", interval="1d"):
     """
     Tải dữ liệu lịch sử giá cổ phiếu từ yfinance.
     """

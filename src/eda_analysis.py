@@ -103,7 +103,7 @@ def run_eda_analysis(input_file="preprocessed_data.csv", raw_data="stock_data.cs
     corr_matrix = df_pre[available_cols].corr()
     
     sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
-    plt.title('Correlation Heatmap')
+    plt.title("FPT.VN Price Trend with MA30", fontsize=16)
     plt.savefig(os.path.join(results_dir, 'correlation_heatmap.png'))
     plt.close()
     print("   - Saved 'correlation_heatmap.png'")
