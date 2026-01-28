@@ -6,7 +6,7 @@ Tài liệu này hướng dẫn cách cài đặt, khởi chạy và sử dụng
 
 ## 1. Giới thiệu
 Web Dashboard là giao diện tương tác giúp bạn:
-- Theo dõi biến động giá cổ phiếu AAPL cùng với dự báo từ các mô hình AI (Linear Regression, XGBoost, BiLSTM).
+- Theo dõi biến động giá cổ phiếu FPT.VN cùng với dự báo từ các mô hình AI (Linear Regression, XGBoost).
 - Xem các chỉ số KPI quan trọng (Giá hiện tại, Thay đổi trong ngày).
 - Nhận tín hiệu tham khảo (Mua/Bán) dựa trên dự báo của mô hình.
 - So sánh hiệu suất giữa các mô hình khác nhau.
