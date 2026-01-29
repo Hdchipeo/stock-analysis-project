@@ -21,7 +21,7 @@ pip install streamlit plotly pandas
 *(Lưu ý: Các thư viện này đã được cài đặt trong quá trình triển khai dự án).*
 
 ## 3. Cách khởi chạy (Run)
-Để mở Dashboard, hãy mở Terminal tại thư mục gốc của dự án (`/Users/dangminhtam/Đồán_PTDL/`) và chạy lệnh:
+Để mở Dashboard, hãy mở Terminal tại thư mục gốc của dự án và chạy lệnh:
 
 ```bash
 streamlit run src/web_dashboard.py

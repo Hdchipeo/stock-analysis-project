@@ -6,12 +6,12 @@ I have successfully collected historical stock data and generated the required v
 
 ### [Data Collection]
 
-- Created [collect_data.py](file:///Users/dangminhtam/Đồán_PTDL/src/collect_data.py) to fetch historical data for **FPT.VN** using `yfinance`.
-- Data saved to [stock_data.csv](file:///Users/dangminhtam/Đồán_PTDL/data/raw/stock_data.csv).
+- Created [collect_data.py](../src/collect_data.py) to fetch historical data for **FPT.VN** using `yfinance`.
+- Data saved to [stock_data.csv](../data/raw/stock_data.csv).
 
 ### [Data Analysis]
 
-- Created [analyze_data.py](file:///Users/dangminhtam/Đồán_PTDL/src/analyze_data.py) to inspect the data structure and generate the variable description table.
+- Created [analyze_data.py](../src/analyze_data.py) to inspect the data structure and generate the variable description table.
 
 ## Bảng 1: Mô tả biến (Variable Description Table)
 
