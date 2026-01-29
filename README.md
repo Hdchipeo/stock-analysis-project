@@ -54,10 +54,10 @@ streamlit run src/web_dashboard.py
 ```
 
 ## 📊 Results Overview
-| Model | RMSE | R2 Score |
+| Model | RMSE (VND) | R2 Score |
 | :--- | :--- | :--- |
-| **Linear Regression** | 0.0054 | 0.9953 |
-| **XGBoost** | 0.0152 | 0.9627 |
+| **Linear Regression** | 577.68 | 0.9952 |
+| **XGBoost** | 1,177.68 | 0.9798 |
 
 > **Conclusion**: Linear Regression performs exceptionally well (R2 > 0.99), indicating strong momentum in FPT.VN's stock price. XGBoost provides valuable insights into feature importance but with slightly lower accuracy.
 

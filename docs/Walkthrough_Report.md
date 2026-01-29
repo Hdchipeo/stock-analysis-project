@@ -171,9 +171,10 @@ Chạy lệnh sau để khởi động:
 streamlit run src/web_dashboard.py
 ```
 
-### 3. Kết luận
-- **Mô hình**: **Linear Regression** cho kết quả rất tốt trên tập dữ liệu này ($R^2 > 0.99$), phù hợp với xu hướng tăng trưởng ổn định của FPT.VN.
-- **Yếu tố ảnh hưởng**: Feature Importance (từ XGBoost) cho thấy các biến trễ (Lag) và các đường trung bình động (MA) có ảnh hưởng lớn nhất đế giá. Khối lượng giao dịch (Volume) có ảnh hưởng thấp hơn so với xu hướng giá quá khứ.
+### 3. Key Findings
+-   **FPT.VN** shows a very strong linear trend, making **Linear Regression** the most accurate model (RMSE: ~577 VND, R2: 0.995).
+-   **Volume** is NOT a strong predictor of daily closing price, confirming market efficiency theories regarding volume-price decoupling in short timeframes.
+-   **Volatility**: High volatility periods are well-captured by the outlier detection system.
 
 ### 3. Khuyến nghị Đầu tư
 > [!TIP]

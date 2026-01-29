@@ -69,10 +69,10 @@ Nghiên cứu áp dụng hai phương pháp tiếp cận chính: Thống kê c�
 ### 3.1. So sánh Hiệu suất (Model Comparison)
 Các mô hình được đánh giá trên tập kiểm tra (Test set - 20% dữ liệu cuối). Kết quả định lượng như sau:
 
-| Mô hình             | RMSE       | MAE        | $R^2$ Score | MAPE    |
+| Mô hình             | RMSE (VND) | MAE (VND)  | $R^2$ Score | MAPE    |
 |:--------------------|-----------:|:-----------|:------------|:--------|
-| **Linear Regression** | **0.0054** | **0.0042** | **0.9953**  | **0.62%** |
-| XGBoost             | 0.0152     | 0.0114     | 0.9627      | 1.66%   |
+| **Linear Regression** | **577.68** | **448.02** | **0.9952**  | **0.44%** |
+| XGBoost             | 1,177.68   | 912.39     | 0.9798      | 0.90%   |
 
 Biểu đồ so sánh trực quan trên 100 phiên giao dịch gần nhất cho thấy sự bám sát của đường dự báo Linear Regression so với giá thực tế.
 

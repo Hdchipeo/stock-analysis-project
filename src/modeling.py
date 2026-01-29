@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import xgboost as xgb
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Bidirectional
-from tensorflow.keras.callbacks import EarlyStopping
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras.layers import LSTM, Dense, Bidirectional
+# from tensorflow.keras.callbacks import EarlyStopping
 import os
 
 def evaluate_metrics(y_true, y_pred, model_name):
@@ -33,6 +33,7 @@ def run_modeling(train_file="train_data.csv", test_file="test_data.csv"):
     data_processed_dir = os.path.join(base_dir, "data", "processed")
     results_dir = os.path.join(base_dir, "results", "figures")
     metrics_path = os.path.join(base_dir, "results", "metrics.csv")
+    scaling_params_path = os.path.join(data_processed_dir, "scaling_params.json")
 
     # Override defaults with correct paths if not specified or if defaults are filenames
     if train_file == "train_data.csv":
@@ -43,6 +44,24 @@ def run_modeling(train_file="train_data.csv", test_file="test_data.csv"):
     if not os.path.exists(train_file) or not os.path.exists(test_file):
         print("Lỗi: Không tìm thấy file dữ liệu train/test.")
         return
+
+    # Load Scaling Params
+    import json
+    scaling_params = None
+    if os.path.exists(scaling_params_path):
+        with open(scaling_params_path, "r") as f:
+            scaling_params = json.load(f)
+        print(f"Loaded scaling params: {scaling_params}")
+    else:
+        print("Warning: Scaling params not found. Predictions will be normalized.")
+
+    # Helper for inversion
+    def inverse_scale(val):
+        if scaling_params:
+            min_val = scaling_params["Close_min"]
+            max_val = scaling_params["Close_max"]
+            return val * (max_val - min_val) + min_val
+        return val
 
     # 1. Load Data
     print("Loading data...")
@@ -60,25 +79,31 @@ def run_modeling(train_file="train_data.csv", test_file="test_data.csv"):
     X_test = test_df[features]
     y_test = test_df[target]
 
+    # Inverse Transform Target for Validation/Reporting
+    y_test_original = inverse_scale(y_test)
+
     results = []
     predictions = pd.DataFrame(index=X_test.index)
-    predictions['Actual'] = y_test
+    predictions['Actual'] = y_test_original
+
 
     # 2. Baseline Model: Linear Regression
     print("\nTraining Linear Regression...")
     lr_model = LinearRegression()
     lr_model.fit(X_train, y_train)
-    y_pred_lr = lr_model.predict(X_test)
+    y_pred_lr_scaled = lr_model.predict(X_test)
+    y_pred_lr = inverse_scale(y_pred_lr_scaled)
     predictions['LinearRegression'] = y_pred_lr
-    results.append(evaluate_metrics(y_test, y_pred_lr, "Linear Regression"))
+    results.append(evaluate_metrics(y_test_original, y_pred_lr, "Linear Regression"))
 
     # 3. Machine Learning Model: XGBoost
     print("\nTraining XGBoost...")
     xgb_model = xgb.XGBRegressor(n_estimators=1000, learning_rate=0.01, objective='reg:squarederror')
-    xgb_model.fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=False)
-    y_pred_xgb = xgb_model.predict(X_test)
+    xgb_model.fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=False) # Train on scaled data
+    y_pred_xgb_scaled = xgb_model.predict(X_test)
+    y_pred_xgb = inverse_scale(y_pred_xgb_scaled)
     predictions['XGBoost'] = y_pred_xgb
-    results.append(evaluate_metrics(y_test, y_pred_xgb, "XGBoost"))
+    results.append(evaluate_metrics(y_test_original, y_pred_xgb, "XGBoost"))
     
     # Feature Importance (XGBoost)
     plt.figure(figsize=(10, 6))
