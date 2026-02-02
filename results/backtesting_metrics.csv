@@ -1,6 +1,7 @@
-Metric,Model Strategy,Buy & Hold
-Total Return (%),-16.57%,-16.69%
-Sharpe Ratio,-0.4149,-0.4149
-Max Drawdown (%),-31.11%,-31.11%
-Số giao dịch,1,2
-Tổng phí (VND),"149,632","274,636"
+Metric,Momentum (Không T+2),Momentum (Có T+2),Buy & Hold,Mean Reversion + SL
+Total Return (%),-30.45%,-33.99%,-25.96%,-32.15%
+Sharpe Ratio,-1.5293,-1.8100,-0.8264,-1.3254
+Max Drawdown (%),-31.93%,-33.99%,-34.51%,-37.91%
+Win Rate (%),22.49%,23.69%,N/A,36.55%
+Số giao dịch,103,78,2,15
+Tổng phí (VND),"12,571,188","9,065,732","260,885","1,798,703"

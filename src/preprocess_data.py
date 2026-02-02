@@ -156,11 +156,16 @@ def preprocess_stock_data(filename="stock_data.csv"):
     print("4. Đã chuẩn hóa dữ liệu [0, 1].")
 
     # 6. Phân chia tập dữ liệu
-    split_idx = int(len(df_scaled) * 0.8)
+    # Sử dụng 1 năm cuối làm test (khoảng 250 phiên giao dịch)
+    # Cách này thực tế hơn: train trên lịch sử, test trên dữ liệu gần nhất
+    test_size = min(250, int(len(df_scaled) * 0.2))  # Tối đa 250 phiên (1 năm) hoặc 20%
+    split_idx = len(df_scaled) - test_size
     train_df = df_scaled.iloc[:split_idx]
     test_df = df_scaled.iloc[split_idx:]
     
-    print(f"5. Đã chia tập dữ liệu: Train ({len(train_df)}), Test ({len(test_df)}).")
+    print(f"5. Đã chia tập dữ liệu:")
+    print(f"   - Train: {len(train_df)} phiên ({train_df.index.min().strftime('%Y-%m-%d')} → {train_df.index.max().strftime('%Y-%m-%d')})")
+    print(f"   - Test:  {len(test_df)} phiên ({test_df.index.min().strftime('%Y-%m-%d')} → {test_df.index.max().strftime('%Y-%m-%d')})")
 
     # Lưu kết quả
     df_scaled.to_csv(os.path.join(data_processed_dir, 'preprocessed_data.csv'))

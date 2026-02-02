@@ -2,17 +2,26 @@ import yfinance as yf
 import pandas as pd
 import os
 
-def collect_stock_data(ticker="FPT.VN", period="5y", interval="1d"):
+def collect_stock_data(ticker="FPT.VN", start="2021-01-01", end="2025-12-31", interval="1d"):
     """
     Tải dữ liệu lịch sử giá cổ phiếu từ yfinance.
+    
+    Tham số:
+    - ticker: Mã cổ phiếu (default: FPT.VN)
+    - start: Ngày bắt đầu (default: 2021-01-01)
+    - end: Ngày kết thúc (default: 2025-12-31)
+    - interval: Khoảng thời gian (default: 1d - hàng ngày)
     """
     print(f"Đang tải dữ liệu cho {ticker}...")
+    print(f"Giai đoạn: {start} đến {end}")
     stock = yf.Ticker(ticker)
-    df = stock.history(period=period, interval=interval)
+    df = stock.history(start=start, end=end, interval=interval)
     
     if df.empty:
         print(f"Không tìm thấy dữ liệu cho {ticker}. Vui lòng kiểm tra lại ticker.")
         return None
+    
+    print(f"Đã tải {len(df)} phiên giao dịch")
     
     # Chỉ giữ lại các cột cần thiết: Open, High, Low, Close, Volume
     df = df[['Open', 'High', 'Low', 'Close', 'Volume']]
@@ -30,3 +39,4 @@ def collect_stock_data(ticker="FPT.VN", period="5y", interval="1d"):
 
 if __name__ == "__main__":
     collect_stock_data()
+
