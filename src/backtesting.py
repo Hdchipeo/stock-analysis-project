@@ -1,0 +1,523 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
+import json
+
+
+class BacktestingEngine:
+    """
+    Backtesting Engine - Đánh giá hiệu quả giao dịch của mô hình dự báo
+    
+    Mục đích:
+    - Kiểm tra xem mô hình dự báo có thực sự sinh lời trong giao dịch thực tế không
+    - So sánh với chiến lược Buy & Hold (mua và giữ)
+    - Tính toán các chỉ số tài chính: Sharpe Ratio, Max Drawdown, Win Rate
+    
+    Tại sao quan trọng:
+    - R² cao không đảm bảo lợi nhuận thực tế
+    - Cần kiểm tra khả năng dự báo CHIỀU HƯỚNG giá (lên/xuống)
+    - Transaction costs và slippage ảnh hưởng lớn đến lợi nhuận
+    """
+    
+    def __init__(self, initial_capital=100_000_000, commission_rate=0.0015):
+        """
+        Khởi tạo Backtesting Engine
+        
+        Tham số:
+        - initial_capital: Vốn ban đầu (VND) - default: 100 triệu
+        - commission_rate: Phí giao dịch (%) - default: 0.15% (phí HoSE)
+        
+        Ý nghĩa:
+        - Phí 0.15% là tổng phí mua + bán trên sàn HoSE
+        - Vốn 100 triệu là mức vừa phải cho nhà đầu tư cá nhân
+        """
+        self.initial_capital = initial_capital
+        self.commission_rate = commission_rate
+        print(f"\n{'='*70}")
+        print(f"BACKTESTING ENGINE INITIALIZED")
+        print(f"{'='*70}")
+        print(f"Vốn ban đầu:     {initial_capital:,.0f} VND")
+        print(f"Phí giao dịch:   {commission_rate*100:.2f}%")
+        print(f"{'='*70}\n")
+    
+    def simple_long_strategy(self, predictions_df, actual_prices):
+        """
+        Chiến lược Long-Only đơn giản
+        
+        Logic:
+        - Nếu predicted_return > 0: MUA (Long) - kỳ vọng giá tăng
+        - Nếu predicted_return <= 0: GIỮ TIỀN MẶT - tránh rủi ro giá giảm
+        
+        Tham số:
+        - predictions_df: DataFrame với cột 'Predicted_Returns'
+        - actual_prices: Series giá thực tế (để tính lợi nhuận thực)
+        
+        Lưu ý:
+        - Đây là chiến lược BẢO THỦ (không short)
+        - Phù hợp với thị trường VN (không cho phép short dễ dàng)
+        - Không tính đòn bẩy (leverage)
+        """
+        print(f"\n{'█'*70}")
+        print(f"BACKTESTING: SIMPLE LONG-ONLY STRATEGY")
+        print(f"{'█'*70}\n")
+        
+        capital = self.initial_capital
+        shares = 0  # Số cổ phiếu đang nắm giữ
+        portfolio_values = [capital]
+        positions = []  # Lưu lịch sử giao dịch
+        cash_history = [capital]
+        shares_history = [0]
+        
+        for i in range(len(predictions_df)):
+            pred_return = predictions_df['Predicted_Returns'].iloc[i]
+            current_price = actual_prices.iloc[i]
+            next_price = actual_prices.iloc[i+1] if i+1 < len(actual_prices) else current_price
+            
+            # Tính giá trị portfolio hiện tại
+            current_portfolio_value = capital + shares * current_price
+            
+            # Quyết định giao dịch
+            if pred_return > 0 and shares == 0:
+                # Signal: MUA - Dự báo giá tăng
+                # Mua tối đa số cổ phiếu có thể với số tiền hiện có
+                shares_to_buy = int((capital * (1 - self.commission_rate)) / current_price)
+                if shares_to_buy > 0:
+                    cost = shares_to_buy * current_price
+                    commission = cost * self.commission_rate
+                    capital -= (cost + commission)
+                    shares += shares_to_buy
+                    
+                    positions.append({
+                        'date': predictions_df.index[i],
+                        'action': 'BUY',
+                        'price': current_price,
+                        'shares': shares_to_buy,
+                        'commission': commission,
+                        'capital': capital
+                    })
+            
+            elif pred_return <= 0 and shares > 0:
+                # Signal: BÁN - Dự báo giá giảm hoặc không tăng
+                # Bán toàn bộ cổ phiếu, chuyển sang tiền mặt
+                revenue = shares * current_price
+                commission = revenue * self.commission_rate
+                capital += (revenue - commission)
+                
+                positions.append({
+                    'date': predictions_df.index[i],
+                    'action': 'SELL',
+                    'price': current_price,
+                    'shares': shares,
+                    'commission': commission,
+                    'capital': capital
+                })
+                
+                shares = 0
+            
+            # Cập nhật giá trị portfolio
+            portfolio_value = capital + shares * next_price
+            portfolio_values.append(portfolio_value)
+            cash_history.append(capital)
+            shares_history.append(shares)
+        
+        # Tính toán metrics
+        returns = np.diff(portfolio_values) / portfolio_values[:-1]
+        
+        # Sharpe Ratio (Annualized)
+        # Công thức: (Mean Return - Risk-free Rate) / Std of Returns * sqrt(252)
+        # Risk-free rate ≈ 0 (để đơn giản)
+        mean_return = np.mean(returns)
+        std_return = np.std(returns)
+        sharpe_ratio = (mean_return / std_return) * np.sqrt(252) if std_return > 0 else 0
+        
+        # Maximum Drawdown
+        # Đo lường mức sụt giảm lớn nhất từ đỉnh cao nhất
+        max_dd = self._calculate_max_drawdown(portfolio_values)
+        
+        # Total Return
+        total_return = (portfolio_values[-1] - self.initial_capital) / self.initial_capital * 100
+        
+        # Win Rate (% số ngày có lợi nhuận)
+        winning_days = sum(1 for r in returns if r > 0)
+        win_rate = (winning_days / len(returns)) * 100 if len(returns) > 0 else 0
+        
+        # Total commission paid
+        total_commission = sum(p['commission'] for p in positions)
+        
+        results = {
+            'portfolio_values': portfolio_values,
+            'cash_history': cash_history,
+            'shares_history': shares_history,
+            'positions': positions,
+            'sharpe_ratio': sharpe_ratio,
+            'max_drawdown': max_dd,
+            'total_return_pct': total_return,
+            'win_rate': win_rate,
+            'total_commission': total_commission,
+            'num_trades': len(positions),
+            'final_capital': portfolio_values[-1]
+        }
+        
+        # In kết quả
+        self._print_strategy_results(results, "SIMPLE LONG-ONLY STRATEGY")
+        
+        return results
+    
+    def buy_and_hold_strategy(self, actual_prices):
+        """
+        Chiến lược Buy & Hold (Baseline)
+        
+        Logic:
+        - Mua cổ phiếu ở đầu kỳ
+        - Giữ cho đến cuối kỳ
+        - Không giao dịch trong suốt thời gian nắm giữ
+        
+        Mục đích:
+        - So sánh xem chiến lược dự báo có vượt qua được "mua và chờ" không
+        - Nếu không vượt qua Buy & Hold → Mô hình không có giá trị thực tiễn
+        """
+        print(f"\n{'█'*70}")
+        print(f"BASELINE: BUY & HOLD STRATEGY")
+        print(f"{'█'*70}\n")
+        
+        # Mua tối đa cổ phiếu ở ngày đầu tiên
+        first_price = actual_prices.iloc[0]
+        shares = int((self.initial_capital * (1 - self.commission_rate)) / first_price)
+        cost = shares * first_price
+        commission_buy = cost * self.commission_rate
+        remaining_cash = self.initial_capital - (cost + commission_buy)
+        
+        # Tính giá trị portfolio theo thời gian
+        portfolio_values = [self.initial_capital]
+        for price in actual_prices:
+            portfolio_value = remaining_cash + shares * price
+            portfolio_values.append(portfolio_value)
+        
+        # Bán ở ngày cuối
+        last_price = actual_prices.iloc[-1]
+        revenue = shares * last_price
+        commission_sell = revenue * self.commission_rate
+        final_capital = remaining_cash + revenue - commission_sell
+        
+        # Metrics
+        total_return = (final_capital - self.initial_capital) / self.initial_capital * 100
+        max_dd = self._calculate_max_drawdown(portfolio_values)
+        
+        # Sharpe Ratio
+        returns = np.diff(portfolio_values) / portfolio_values[:-1]
+        mean_return = np.mean(returns)
+        std_return = np.std(returns)
+        sharpe_ratio = (mean_return / std_return) * np.sqrt(252) if std_return > 0 else 0
+        
+        results = {
+            'portfolio_values': portfolio_values,
+            'sharpe_ratio': sharpe_ratio,
+            'max_drawdown': max_dd,
+            'total_return_pct': total_return,
+            'total_commission': commission_buy + commission_sell,
+            'num_trades': 2,  # Buy + Sell
+            'final_capital': final_capital
+        }
+        
+        self._print_strategy_results(results, "BUY & HOLD STRATEGY")
+        
+        return results
+    
+    def _calculate_max_drawdown(self, portfolio_values):
+        """
+        Tính Maximum Drawdown - Mức sụt giảm lớn nhất từ đỉnh cao nhất
+        
+        Công thức:
+        DD_t = (Portfolio_t - Peak_t) / Peak_t
+        Max DD = min(DD_t)
+        
+        Ý nghĩa:
+        - Đo lường rủi ro lớn nhất mà nhà đầu tư phải chịu
+        - Ví dụ: Max DD = -15% nghĩa là tài khoản từng giảm 15% từ đỉnh cao
+        """
+        portfolio_values = np.array(portfolio_values)
+        peak = np.maximum.accumulate(portfolio_values)
+        drawdown = (portfolio_values - peak) / peak
+        max_drawdown = np.min(drawdown) * 100  # Convert to percentage
+        
+        return max_drawdown
+    
+    def _print_strategy_results(self, results, strategy_name):
+        """In kết quả của chiến lược"""
+        print(f"\n{'─'*70}")
+        print(f"KẾT QUẢ: {strategy_name}")
+        print(f"{'─'*70}")
+        print(f"Vốn ban đầu:           {self.initial_capital:>15,.0f} VND")
+        print(f"Vốn cuối kỳ:           {results['final_capital']:>15,.0f} VND")
+        print(f"Tổng lợi nhuận:        {results['total_return_pct']:>15.2f}%")
+        print(f"Sharpe Ratio:          {results['sharpe_ratio']:>15.4f}")
+        print(f"Max Drawdown:          {results['max_drawdown']:>15.2f}%")
+        
+        if 'win_rate' in results:
+            print(f"Win Rate:              {results['win_rate']:>15.2f}%")
+        
+        print(f"Số lần giao dịch:      {results['num_trades']:>15}")
+        print(f"Tổng phí giao dịch:    {results['total_commission']:>15,.0f} VND")
+        print(f"{'─'*70}\n")
+    
+    def compare_strategies(self, model_results, baseline_results):
+        """
+        So sánh Model Strategy vs Buy & Hold
+        
+        Mục đích:
+        - Xem chiến lược dự báo có vượt trội không
+        - Đánh giá risk-adjusted return (Sharpe Ratio)
+        """
+        print(f"\n{'='*70}")
+        print(f"SO SÁNH CHIẾN LƯỢC")
+        print(f"{'='*70}\n")
+        
+        comparison = pd.DataFrame({
+            'Metric': [
+                'Total Return (%)',
+                'Sharpe Ratio',
+                'Max Drawdown (%)',
+                'Số giao dịch',
+                'Tổng phí (VND)'
+            ],
+            'Model Strategy': [
+                f"{model_results['total_return_pct']:.2f}%",
+                f"{model_results['sharpe_ratio']:.4f}",
+                f"{model_results['max_drawdown']:.2f}%",
+                model_results['num_trades'],
+                f"{model_results['total_commission']:,.0f}"
+            ],
+            'Buy & Hold': [
+                f"{baseline_results['total_return_pct']:.2f}%",
+                f"{baseline_results['sharpe_ratio']:.4f}",
+                f"{baseline_results['max_drawdown']:.2f}%",
+                baseline_results['num_trades'],
+                f"{baseline_results['total_commission']:,.0f}"
+            ]
+        })
+        
+        print(comparison.to_string(index=False))
+        print(f"\n{'='*70}")
+        
+        # Kết luận
+        print("\n📊 NHẬN XÉT:")
+        
+        # Total Return comparison
+        if model_results['total_return_pct'] > baseline_results['total_return_pct']:
+            diff = model_results['total_return_pct'] - baseline_results['total_return_pct']
+            print(f"   ✓ Model Strategy VƯỢT TRỘI hơn Buy & Hold: {diff:.2f}%")
+        else:
+            diff = baseline_results['total_return_pct'] - model_results['total_return_pct']
+            print(f"   ✗ Model Strategy KÉMHƠN Buy & Hold: {diff:.2f}%")
+        
+        # Sharpe Ratio comparison
+        if model_results['sharpe_ratio'] > baseline_results['sharpe_ratio']:
+            print(f"   ✓ Risk-adjusted return TỐT HƠN (Sharpe Ratio cao hơn)")
+        else:
+            print(f"   ✗ Risk-adjusted return KÉMUẢ (Sharpe Ratio thấp hơn)")
+        
+        # Max Drawdown comparison (càng nhỏ càng tốt)
+        if model_results['max_drawdown'] > baseline_results['max_drawdown']:
+            print(f"   ✗ RỦI RO cao hơn (Max Drawdown lớn hơn)")
+        else:
+            print(f"   ✓ RỦI RO thấp hơn (Max Drawdown nhỏ hơn)")
+        
+        print()
+        
+        return comparison
+
+
+def plot_backtest_comparison(model_results, baseline_results, save_path="results/figures"):
+    """
+    Vẽ biểu đồ so sánh hiệu quả backtesting
+    
+    Bao gồm:
+    1. Portfolio value theo thời gian
+    2. Drawdown chart
+    3. Monthly returns comparison
+    """
+    os.makedirs(save_path, exist_ok=True)
+    
+    # === Figure 1: Portfolio Value Comparison ===
+    fig, axes = plt.subplots(2, 1, figsize=(16, 10))
+    
+    # Plot 1: Portfolio Value
+    model_values = model_results['portfolio_values']
+    baseline_values = baseline_results['portfolio_values']
+    
+    axes[0].plot(model_values, label='Model Strategy', linewidth=2.5, color='#2E86AB')
+    axes[0].plot(baseline_values, label='Buy & Hold', linewidth=2.5, color='#A23B72', linestyle='--')
+    axes[0].axhline(y=model_results['portfolio_values'][0], color='gray', 
+                    linestyle=':', alpha=0.5, label='Initial Capital')
+    
+    axes[0].set_title('Backtesting: Portfolio Value Over Time\nModel Strategy vs Buy & Hold', 
+                      fontsize=16, fontweight='bold', pad=20)
+    axes[0].set_ylabel('Portfolio Value (VND)', fontsize=12, fontweight='bold')
+    axes[0].legend(fontsize=11, loc='upper left')
+    axes[0].grid(True, alpha=0.3)
+    axes[0].ticklabel_format(style='plain', axis='y')
+    
+    # Format y-axis with Vietnamese number format
+    axes[0].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x:,.0f}'))
+    
+    # Plot 2: Drawdown Comparison
+    model_dd = calculate_drawdown(model_values)
+    baseline_dd = calculate_drawdown(baseline_values)
+    
+    axes[1].fill_between(range(len(model_dd)), model_dd, 0, 
+                          alpha=0.4, color='#2E86AB', label='Model Strategy DD')
+    axes[1].fill_between(range(len(baseline_dd)), baseline_dd, 0, 
+                          alpha=0.4, color='#A23B72', label='Buy & Hold DD')
+    axes[1].set_title('Drawdown Comparison (% giảm từ đỉnh cao nhất)', 
+                      fontsize=14, fontweight='bold', pad=15)
+    axes[1].set_xlabel('Trading Days', fontsize=12, fontweight='bold')
+    axes[1].set_ylabel('Drawdown (%)', fontsize=12, fontweight='bold')
+    axes[1].legend(fontsize=11)
+    axes[1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_path, 'backtesting_comparison.png'), 
+                dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"   → Đã lưu biểu đồ: backtesting_comparison.png")
+    
+    # === Figure 2: Performance Metrics Bar Chart ===
+    fig, ax = plt.subplots(figsize=(12, 7))
+    
+    metrics = ['Total Return\n(%)', 'Sharpe\nRatio', 'Max Drawdown\n(%)']
+    model_metrics = [
+        model_results['total_return_pct'],
+        model_results['sharpe_ratio'],
+        abs(model_results['max_drawdown'])
+    ]
+    baseline_metrics = [
+        baseline_results['total_return_pct'],
+        baseline_results['sharpe_ratio'],
+        abs(baseline_results['max_drawdown'])
+    ]
+    
+    x = np.arange(len(metrics))
+    width = 0.35
+    
+    bars1 = ax.bar(x - width/2, model_metrics, width, label='Model Strategy', 
+                   color='#2E86AB', alpha=0.8, edgecolor='black', linewidth=1.5)
+    bars2 = ax.bar(x + width/2, baseline_metrics, width, label='Buy & Hold', 
+                   color='#A23B72', alpha=0.8, edgecolor='black', linewidth=1.5)
+    
+    # Add value labels on bars
+    for bars in [bars1, bars2]:
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height,
+                   f'{height:.2f}',
+                   ha='center', va='bottom', fontsize=10, fontweight='bold')
+    
+    ax.set_ylabel('Value', fontsize=12, fontweight='bold')
+    ax.set_title('Performance Metrics Comparison', fontsize=16, fontweight='bold', pad=20)
+    ax.set_xticks(x)
+    ax.set_xticklabels(metrics, fontsize=11)
+    ax.legend(fontsize=11)
+    ax.grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_path, 'performance_metrics_comparison.png'), 
+                dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"   → Đã lưu biểu đồ: performance_metrics_comparison.png")
+
+
+def calculate_drawdown(portfolio_values):
+    """Helper function to calculate drawdown series"""
+    portfolio_values = np.array(portfolio_values)
+    peak = np.maximum.accumulate(portfolio_values)
+    drawdown = (portfolio_values - peak) / peak * 100
+    return drawdown
+
+
+def run_backtesting(predictions_file="predictions.csv", test_data_file="test_data.csv"):
+    """
+    Chạy backtesting cho mô hình dự báo
+    
+    Input:
+    - predictions_file: File chứa dự báo của mô hình
+    - test_data_file: File chứa dữ liệu test (giá thực tế)
+    
+    Output:
+    - Kết quả backtesting được lưu vào results/backtesting_metrics.csv
+    - Các biểu đồ so sánh
+    """
+    print("\n" + "="*80)
+    print(" " * 30 + "BACKTESTING MODULE")
+    print("="*80 + "\n")
+    
+    # Load data
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    predictions_path = os.path.join(base_dir, "results", predictions_file)
+    test_data_path = os.path.join(base_dir, "data", "processed", test_data_file)
+    scaling_params_path = os.path.join(base_dir, "data", "processed", "scaling_params.json")
+    
+    if not os.path.exists(predictions_path):
+        print(f"Lỗi: Không tìm thấy {predictions_path}")
+        print("Vui lòng chạy modeling.py trước")
+        return
+    
+    # Load predictions
+    predictions_df = pd.read_csv(predictions_path, index_col='Date', parse_dates=True)
+    test_df = pd.read_csv(test_data_path, index_col='Date', parse_dates=True)
+    
+    # Load scaling params to get actual prices
+    with open(scaling_params_path, 'r') as f:
+        scaling_params = json.load(f)
+    
+    # Inverse scale Close prices
+    def inverse_scale(val):
+        return val * (scaling_params['Close_max'] - scaling_params['Close_min']) + scaling_params['Close_min']
+    
+    actual_prices = test_df['Close'].apply(inverse_scale)
+    
+    # Get predicted returns (assuming model predicted Log_Returns)
+    # Need to check if predictions contain Log_Returns or Close
+    if 'XGBoost_Returns' in predictions_df.columns:
+        pred_returns = predictions_df['XGBoost_Returns']
+    elif 'XGBoost' in predictions_df.columns:
+        # Convert price predictions to returns
+        pred_returns = predictions_df['XGBoost'].pct_change()
+    else:
+        print("Lỗi: Không tìm thấy cột dự báo trong predictions file")
+        return
+    
+    # Create predictions dataframe for backtesting
+    backtest_df = pd.DataFrame({
+        'Predicted_Returns': pred_returns[:len(actual_prices)-1]  # -1 because we need next price
+    }, index=actual_prices.index[:len(pred_returns)])
+    
+    # Initialize backtesting engine
+    engine = BacktestingEngine(initial_capital=100_000_000, commission_rate=0.0015)
+    
+    # Run Model Strategy
+    model_results = engine.simple_long_strategy(backtest_df, actual_prices)
+    
+    # Run Buy & Hold Strategy
+    baseline_results = engine.buy_and_hold_strategy(actual_prices)
+    
+    # Compare strategies
+    comparison = engine.compare_strategies(model_results, baseline_results)
+    
+    # Save results
+    results_path = os.path.join(base_dir, "results", "backtesting_metrics.csv")
+    comparison.to_csv(results_path, index=False)
+    print(f"\n✓ Đã lưu kết quả backtesting vào: {results_path}")
+    
+    # Plot comparison
+    results_dir = os.path.join(base_dir, "results", "figures")
+    plot_backtest_comparison(model_results, baseline_results, results_dir)
+    
+    print("\n" + "="*80)
+    print(" " * 28 + "BACKTESTING HOÀN THÀNH")
+    print("="*80 + "\n")
+
+
+if __name__ == "__main__":
+    run_backtesting()

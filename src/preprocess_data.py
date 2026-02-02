@@ -67,30 +67,79 @@ def preprocess_stock_data(filename="stock_data.csv"):
     print("2. Đã phát hiện ngoại lai và lưu biểu đồ.")
 
     # 4. Kỹ thuật đặc trưng (Feature Engineering)
-    # Log Returns
-    df_clean['Log_Returns'] = np.log(df_clean['Close'] / df_clean['Close'].shift(1))
+    print("3. Bắt đầu Feature Engineering...")
     
-    # Technical Indicators (Manual)
+    # === A. Log Returns ===
+    # Tỷ suất sinh lợi logarit: r_t = ln(P_t / P_{t-1})
+    # Ưu điểm: Stationary, symmetric, additive
+    df_clean['Log_Returns'] = np.log(df_clean['Close'] / df_clean['Close'].shift(1))
+    print("   → Đã tạo Log_Returns (Target chính cho regression)")
+    
+    # === B. Price Direction (Classification Target) ===
+    # Biến nhị phân: 1 nếu giá tăng, 0 nếu giá giảm/không đổi
+    # Mục đích: Sử dụng cho mô hình phân loại (Classification)
+    df_clean['Price_Direction'] = (df_clean['Log_Returns'] > 0).astype(int)
+    print("   → Đã tạo Price_Direction (Target cho classification)")
+    
+    # === C. Technical Indicators ===
+    # RSI (14): Relative Strength Index - Đo momentum
+    # Giá trị 0-100: >70 = Overbought, <30 = Oversold
     df_clean['RSI_14'] = calculate_rsi(df_clean['Close'], period=14)
     
+    # MACD: Moving Average Convergence Divergence - Chỉ báo xu hướng
+    # MACD Line = EMA(12) - EMA(26)
+    # Signal Line = EMA(9) của MACD
     macd, signal = calculate_macd(df_clean['Close'])
     df_clean['MACD_12_26_9'] = macd
     df_clean['MACDs_12_26_9'] = signal
 
+    # Simple Moving Averages - Đường trung bình động
+    # SMA_7: Xu hướng ngắn hạn (1 tuần giao dịch)
+    # SMA_30: Xu hướng trung hạn (1 tháng giao dịch)
     df_clean['SMA_7'] = df_clean['Close'].rolling(window=7).mean()
     df_clean['SMA_30'] = df_clean['Close'].rolling(window=30).mean()
+    print("   → Đã tạo Technical Indicators (RSI, MACD, SMA)")
     
-    # Fill NaN
-    df_clean.fillna(method='bfill', inplace=True)
-    df_clean.fillna(method='ffill', inplace=True) # Ensure clean start
+    # === D. Volume-based Features ===
+    # D1. Volume Change - % thay đổi khối lượng giao dịch
+    # Mục đích: Phát hiện sự thay đổi thanh khoản
+    df_clean['Volume_Change'] = df_clean['Volume'].pct_change()
     
-    # Sliding Window (Lag Features for Close)
+    # D2. Volume Shock - Phát hiện khối lượng bất thường
+    # Logic: Volume > Mean + 2*Std (vượt 2 độ lệch chuẩn)
+    # Ý nghĩa: Báo hiệu sự kiện quan trọng (tin tức, earnings, etc.)
+    volume_mean_30 = df_clean['Volume'].rolling(window=30).mean()
+    volume_std_30 = df_clean['Volume'].rolling(window=30).std()
+    df_clean['Volume_Shock'] = (
+        df_clean['Volume'] > (volume_mean_30 + 2 * volume_std_30)
+    ).astype(int)
+    
+    # D3. Price Volatility - Biến động giá
+    # Đo bằng rolling standard deviation của Log Returns
+    # Window = 30 ngày (volatility trong 1 tháng)
+    df_clean['Volatility_30'] = df_clean['Log_Returns'].rolling(window=30).std()
+    print("   → Đã tạo Volume Features (Volume_Change, Volume_Shock, Volatility)")
+    
+    # === E. Lag Features ===
+    # Sử dụng giá trị quá khứ của Log_Returns làm features
+    # Lags = [1, 2, 3]: Giá trị của 1, 2, 3 ngày trước
+    # Note: Sau khi chạy ACF/PACF analysis, có thể điều chỉnh số lags tối ưu
     for i in range(1, 4):
-        df_clean[f'Close_Lag_{i}'] = df_clean['Close'].shift(i)
+        df_clean[f'Returns_Lag_{i}'] = df_clean['Log_Returns'].shift(i)
     
-    # Drop NaN created by lags
+    # Lag features cho Volume_Change (phát hiện xu hướng volume)
+    for i in range(1, 3):
+        df_clean[f'Volume_Change_Lag_{i}'] = df_clean['Volume_Change'].shift(i)
+    
+    print("   → Đã tạo Lag Features (Returns_Lag_1-3, Volume_Change_Lag_1-2)")
+    
+    # Fill NaN values
+    df_clean.fillna(method='bfill', inplace=True)
+    df_clean.fillna(method='ffill', inplace=True)
+    
+    # Drop remaining NaN
     df_features = df_clean.dropna()
-    print("3. Đã tạo các biến đặc trưng (RSI, MACD, MA, Lags).")
+    print(f"   ✓ Feature Engineering hoàn tất: {len(df_features.columns)} features")
 
     # Save Scaling Params BEFORE Scaling
     close_min = df_features['Close'].min()
