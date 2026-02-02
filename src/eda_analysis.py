@@ -37,9 +37,11 @@ def run_eda_analysis(input_file="preprocessed_data.csv", raw_data="stock_data.cs
     df_pre.index = df_pre.index.tz_convert(None)
 
     df_raw = pd.read_csv(raw_data)
-    df_raw['Date'] = pd.to_datetime(df_raw['Date'], utc=True)
+    # Parse datetime - KHÔNG convert sang UTC để giữ đúng ngày
+    df_raw['Date'] = pd.to_datetime(df_raw['Date'])
+    # Loại bỏ timezone info nhưng giữ nguyên giá trị ngày
+    df_raw['Date'] = df_raw['Date'].dt.tz_localize(None)
     df_raw.set_index('Date', inplace=True)
-    df_raw.index = df_raw.index.tz_convert(None)
     df_raw.sort_index(inplace=True)
 
     # 1. Trend Analysis (Candlestick + MA + Volume)
@@ -55,7 +57,7 @@ def run_eda_analysis(input_file="preprocessed_data.csv", raw_data="stock_data.cs
     fig, axes = mpf.plot(df_last_year, type='candle', style=s,
              mav=(30), # Moving Average 30 ngày
              volume=True, 
-             title='Trend Analysis: AAPL Stock Price (Last 1 Year)',
+             title='Trend Analysis: FPT.VN Stock Price (Last 1 Year)',
              ylabel='Price ($)',
              ylabel_lower='Volume',
              figsize=(12, 8),
@@ -111,21 +113,35 @@ def run_eda_analysis(input_file="preprocessed_data.csv", raw_data="stock_data.cs
     # 4. Seasonality Analysis (Boxplot)
     print("4. Drawing Seasonality Analysis...")
     df_raw['Month'] = df_raw.index.month
-    df_raw['DayOfWeek'] = df_raw.index.day_name()
+    
+    # Xử lý DayOfWeek - sử dụng dayofweek số (0=Monday, 4=Friday) rồi map sang tên
+    day_names_map = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday'}
+    df_raw['DayOfWeek'] = df_raw.index.dayofweek.map(day_names_map)
+    
+    # Debug: In số lượng mỗi ngày
+    print("   DEBUG - Số phiên theo ngày:")
+    day_counts = df_raw['DayOfWeek'].value_counts()
+    for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']:
+        count = day_counts.get(day, 0)
+        print(f"      {day}: {count} phiên")
+    
+    # Lọc chỉ lấy các ngày giao dịch (Monday-Friday), loại bỏ NaN nếu có
+    df_raw_filtered = df_raw[df_raw['DayOfWeek'].notna()].copy()
     
     # Sắp xếp thứ tự ngày trong tuần
     days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
     
     fig, axes = plt.subplots(1, 2, figsize=(16, 6))
     
-    # Boxplot theo Tháng (Volume)
-    sns.boxplot(x='Month', y='Volume', data=df_raw, ax=axes[0], palette="viridis")
+    # Boxplot theo Tháng (Volume) - Fix FutureWarning bằng cách sử dụng hue
+    sns.boxplot(x='Month', y='Volume', data=df_raw, ax=axes[0], hue='Month', palette="viridis", legend=False)
     axes[0].set_title('Volume Distribution by Month')
     axes[0].set_xlabel('Month')
     axes[0].set_ylabel('Volume')
     
-    # Boxplot theo Ngày trong tuần (Volume)
-    sns.boxplot(x='DayOfWeek', y='Volume', data=df_raw, ax=axes[1], order=days_order, palette="magma")
+    # Boxplot theo Ngày trong tuần (Volume) - Fix FutureWarning
+    sns.boxplot(x='DayOfWeek', y='Volume', data=df_raw_filtered, ax=axes[1], 
+                order=days_order, hue='DayOfWeek', hue_order=days_order, palette="magma", legend=False)
     axes[1].set_title('Volume Distribution by Day of Week')
     axes[1].set_xlabel('Day of Week')
     axes[1].set_ylabel('Volume')

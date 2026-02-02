@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import os
 
-def create_dashboard(ticker="AAPL"):
+def create_dashboard(ticker="FPT.VN"):
     """
     Tổng hợp kết quả thành một Dashboard duy nhất.
     """
