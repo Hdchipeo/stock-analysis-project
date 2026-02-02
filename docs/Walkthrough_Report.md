@@ -61,6 +61,14 @@ Báo cáo này tổng hợp quá trình thu thập dữ liệu và phân tích c
 
 ![Biểu đồ ngoại lai](../results/figures/outliers.png)
 
+**Nhận xét:**
+- **Xu hướng tổng quan**: FPT tăng từ ~30,000 VND (2021) lên đỉnh ~131,000 VND (2025), mức tăng +340%.
+- **Các điểm ngoại lai** (chấm đỏ) được phát hiện tại:
+  - **2021-2022**: Các phiên biến động mạnh trong giai đoạn đầu
+  - **2024-2025**: Cluster outliers tại vùng đỉnh khi giá tăng mạnh
+  - **2025-2026**: Outliers tại các đợt điều chỉnh sâu
+- **Ý nghĩa**: Các outliers thường xuất hiện tại điểm đảo chiều hoặc tin tức đặc biệt, nên được giữ lại thay vì loại bỏ.
+
 ### 2. Kỹ thuật Đặc trưng (Feature Engineering)
 
 Các đặc trưng được tạo ra để tăng khả năng dự báo:
@@ -86,27 +94,69 @@ Các đặc trưng được tạo ra để tăng khả năng dự báo:
 
 ## Phân tích Khám phá & Trực quan hóa (EDA)
 
-### 1. Phân tích Xu hướng
+### 1. Phân tích Xu hướng (Trend Analysis)
 
 ![Trend Analysis](../results/figures/trend_analysis.png)
 
-> [!NOTE]
-> FPT có xu hướng tăng mạnh trong giai đoạn 2021-2026, với các đợt điều chỉnh ngắn hạn.
+**Nhận xét:**
+- **Xu hướng tăng mạnh**: Cổ phiếu FPT có xu hướng tăng giá rõ ràng trong 1 năm gần nhất, từ khoảng 95,000 VND lên đỉnh 130,000 VND.
+- **Đường MA30** (đường xanh) đóng vai trò hỗ trợ/kháng cự động, khi giá vượt lên trên MA30 thường tiếp tục tăng.
+- **Volume đột biến**: Các phiên có volume cao (>20 triệu cổ phiếu) thường xuất hiện tại điểm đảo chiều xu hướng.
+- **Điều chỉnh**: Có 2 đợt điều chỉnh lớn: tháng 6/2025 và tháng 11/2025, mỗi đợt giảm khoảng 15-20%.
 
-### 2. Phân phối Log Returns
+---
+
+### 2. Phân phối Log Returns (Fat Tails Analysis)
 
 ![Distribution Analysis](../results/figures/distribution_analysis.png)
 
-> [!IMPORTANT]
-> **Fat Tails (Đuôi béo)**: Phân phối Log Returns của FPT có đuôi dày hơn phân phối chuẩn, nghĩa là xác suất xảy ra biến động lớn cao hơn mong đợi.
+**Nhận xét:**
+- **Leptokurtic**: Phân phối Log Returns có đỉnh nhọn hơn phân phối chuẩn (đường đen), cho thấy giá FPT thường biến động nhỏ quanh mức trung bình.
+- **Fat Tails (Đuôi béo)**: Hai đuôi của phân phối dày hơn đường Normal, nghĩa là **xác suất biến động cực đoan (±3σ) cao hơn lý thuyết**.
+- **Giá trị trung tâm**: Log Returns tập trung quanh 0.5 (sau khi chuẩn hóa), phản ánh xu hướng tăng tổng thể của FPT.
+- **Ý nghĩa thực tiễn**: Nhà đầu tư cần chuẩn bị cho các "Black Swan events" - những biến động bất ngờ vượt xa dự đoán.
 
-### 3. Ma trận Tương quan
+> [!WARNING]
+> **Rủi ro Fat Tails**: Các mô hình máy học dựa trên phân phối chuẩn có thể **đánh giá thấp rủi ro** của các biến động cực đoan.
+
+---
+
+### 3. Ma trận Tương quan (Correlation Heatmap)
 
 ![Correlation Heatmap](../results/figures/correlation_heatmap.png)
 
-### 4. Phân tích Mùa vụ
+**Nhận xét:**
+| Cặp biến | Hệ số r | Ý nghĩa |
+|----------|--------|---------|
+| Close ↔ SMA_7 | **1.00** | Tương quan hoàn hảo (SMA_7 = trung bình của Close) |
+| Close ↔ SMA_30 | **0.99** | Gần như hoàn hảo - SMA30 bám sát giá |
+| RSI_14 ↔ MACD | **0.73** | Tương quan cao - cả hai đều đo momentum |
+| Log_Returns ↔ RSI_14 | **0.36** | Tương quan vừa phải - RSI có giá trị dự báo |
+| Close ↔ Log_Returns | **-0.01** | Không tương quan - returns không phụ thuộc giá |
+| Volume ↔ Close | **0.37** | Tương quan dương - giá tăng kèm volume tăng |
+
+> [!TIP]
+> **Tránh Multicollinearity**: SMA_7 và SMA_30 có tương quan rất cao với Close (~1.0), nên trong mô hình chỉ nên sử dụng 1 trong 3 để tránh đa cộng tuyến.
+
+---
+
+### 4. Phân tích Mùa vụ (Seasonality Analysis)
 
 ![Seasonality Analysis](../results/figures/seasonality_analysis.png)
+
+**Nhận xét theo Tháng (biểu đồ trái):**
+- **Tháng 1, 12**: Volume cao nhất - nhà đầu tư tái cân bằng danh mục cuối/đầu năm
+- **Tháng 2**: Volume thấp nhất - ảnh hưởng kỳ nghỉ Tết Nguyên đán
+- **Tháng 6-8**: Volume ổn định ở mức trung bình
+- **Nhiều outliers**: Các chấm tròn bên ngoài boxplot cho thấy nhiều phiên giao dịch đột biến
+
+**Nhận xét theo Ngày trong tuần (biểu đồ phải):**
+- **Thứ 2 (Monday)**: Volume cao nhất - hiệu ứng "Monday Effect" do tích lũy thông tin cuối tuần
+- **Thứ 6 (Friday)**: Volume thấp nhất - nhà đầu tư tránh nắm giữ qua cuối tuần
+- **Thứ 3-5**: Volume ổn định, ít biến động
+
+> [!NOTE]
+> **Ứng dụng**: Có thể sử dụng Day-of-Week và Month làm features bổ sung cho mô hình dự báo.
 
 ## Mô hình hóa (Modeling)
 
@@ -130,16 +180,35 @@ Các đặc trưng được tạo ra để tăng khả năng dự báo:
 
 ![Model Comparison](../results/figures/model_comparison_returns.png)
 
+**Nhận xét:**
+- **Linear Regression** (đường đỏ đứt): Dự báo khá phẳng, bám sát giá trị trung bình, không nắm bắt được biến động ngắn hạn.
+- **XGBoost** (đường xanh lá đứt): Phản ứng nhanh hơn với thay đổi, bắt được một số đỉnh/đáy nhưng vẫn có độ trễ.
+- **BiLSTM** (đường cam đứt): Cho dự báo mượt nhất, thể hiện khả năng học các pattern dài hạn từ chuỗi thời gian.
+- **Thử thách với dữ liệu tài chính**: Cả 3 mô hình đều khó dự báo chính xác magnitude của biến động, nhưng đạt được mục tiêu dự báo direction (hướng đi).
+
+---
+
 ### 3. Tầm quan trọng của Đặc trưng (Feature Importance)
 
 ![Feature Importance](../results/figures/feature_importance_returns.png)
 
-**Top 5 Features quan trọng nhất:**
-1. **Returns_Lag_1**: Momentum ngắn hạn
-2. **Volatility_30**: Mức độ rủi ro/biến động
-3. **RSI_14**: Chỉ báo overbought/oversold
-4. **Returns_Lag_2**: Pattern 2 ngày
-5. **Volume_Change_Lag_2**: Xác nhận xu hướng Volume
+**Nhận xét từ XGBoost Feature Importance:**
+
+| Hạng | Feature | F-Score | Ý nghĩa |
+|:----:|---------|--------:|---------|
+| 1 | **RSI_14** | 4,208 | Chỉ báo momentum quan trọng nhất |
+| 2 | **MACD_12_26_9** | 2,961 | Xác nhận xu hướng ngắn/dài hạn |
+| 3 | **Volume_Change** | 2,409 | Thanh khoản dự báo biến động |
+| 4 | **Returns_Lag_1** | 2,378 | Momentum 1 ngày |
+| 5 | **Volatility_30** | 2,121 | Mức độ rủi ro gần đây |
+
+> [!IMPORTANT]
+> **Insights quan trọng:**
+> - **RSI và MACD** là 2 features quan trọng nhất → Chỉ báo kỹ thuật có giá trị dự báo thực sự!
+> - **Volume_Change** top 3 → Xác nhận mối quan hệ nhân quả Volume → Returns (từ Granger test)
+> - **Volume_Shock** ít quan trọng (rank cuối) → Binary features không hiệu quả bằng continuous features
+
+---
 
 ## Kết quả Backtesting
 
@@ -153,6 +222,20 @@ Các đặc trưng được tạo ra để tăng khả năng dự báo:
 | **Win Rate** | 57.1% | N/A |
 
 ![Backtesting Comparison](../results/figures/backtesting_comparison.png)
+
+**Nhận xét từ Backtesting:**
+
+**Biểu đồ trên (Portfolio Value):**
+- **Đường xanh** (Model Strategy) và **đường đỏ** (Buy & Hold) gần như trùng nhau trong phần lớn thời gian.
+- **Điểm khác biệt**: Model Strategy có xu hướng giữ lại lợi nhuận tốt hơn trong các đợt điều chỉnh.
+- **Max Drawdown nhỏ hơn**: Model Strategy chỉ giảm tối đa -11.89% so với -18.45% của Buy & Hold.
+
+**Biểu đồ dưới (Drawdown):**
+- **Vùng tím** thể hiện mức sụt giảm từ đỉnh → đáy.
+- Model Strategy phục hồi nhanh hơn sau các đợt sụt giảm.
+
+> [!TIP]
+> **Kết luận thực tiễn**: Chiến lược dựa trên mô hình BiLSTM giúp **giảm rủi ro** (~35% drawdown ít hơn) trong khi vẫn duy trì lợi nhuận tương đương hoặc cao hơn Buy & Hold.
 
 ## Cấu trúc Dự án
 
