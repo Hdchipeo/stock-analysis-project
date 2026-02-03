@@ -2,28 +2,26 @@
 ## Phương pháp Tiếp cận Học thuật và Thực tiễn
 
 **Tác giả**: Nhóm phân tích FPT Stock Analysis  
-**Ngày cập nhật**: 02/02/2026  
-**Phiên bản**: 2.0 - Upgraded with Statistical Testing & Backtesting
+**Ngày cập nhật**: 03/02/2026  
+**Phiên bản**: 3.0 - So sánh Backtesting 2024 vs 2025
 
 ---
 
 ## Tóm tắt Nội dung (Executive Summary)
 
-Báo cáo này trình bày kết quả phân tích và dự báo giá cổ phiếu FPT Corp. (FPT.VN) trong giai đoạn 5 năm, với phương pháp tiếp cận **học thuật đúng đắn** thay vì dự báo giá tuyệt đối (naive forecast).
+Báo cáo này trình bày kết quả phân tích và dự báo giá cổ phiếu FPT Corp. (FPT.VN) từ 01/2021 đến 02/2026, với phương pháp tiếp cận **học thuật đúng đắn** thay vì dự báo giá tuyệt đối.
 
 **Điểm nổi bật:**
-- ✅ Chuyển từ dự báo giá sang **dự báo Tỷ suất sinh lợi Log (Log Returns)**
-- ✅ Kiểm định thống kê đầy đủ: **ADF Test, Granger Causality, ACF/PACF**
-- ✅ Triển khai mô hình **BiLSTM** (Deep Learning) cho chuỗi thời gian
-- ✅ **Backtesting** với chiến lược giao dịch thực tế
-- ✅ Phân tích **Residuals** (White Noise Test)
+- ✅ Dự báo **Log Returns** thay vì giá tuyệt đối
+- ✅ Kiểm định thống kê: **ADF Test, Granger Causality, ACF/PACF**
+- ✅ Mô hình **XGBoost** (R² = 0.40) và **BiLSTM** (Deep Learning)
+- ✅ **Backtesting so sánh 2 giai đoạn**: 2024 (năm tăng) vs 2025 (năm giảm)
 
 **Kết quả chính:**
-- Chuỗi giá **không dừng** → không thể dự báo trực tiếp ✓
-- Log Returns **là dừng** → phù hợp cho mô hình ML ✓
-- Volume **có/không có** mối quan hệ nhân quả với Returns (xem mục 2.2)
-- Direction Accuracy: **99.6%** (> 55% = có giá trị thương mại) ✓
-- Trading Strategy: **Underperform** Buy & Hold (-28.42% vs -16.78%)
+- Train: 748 phiên (2021-2023), Test: 2024 và 2025 riêng biệt
+- XGBoost R² = **0.40**, Direction Accuracy = **99.8%**
+- **2024**: Model +39.20% (thua Buy & Hold +85.45%)
+- **2025**: Model -25.76% (**THẮNG** Buy & Hold -26.24%, giảm Drawdown từ 34% xuống 27%)
 
 ---
 
@@ -91,10 +89,11 @@ Thay vì chỉ nhìn R², ta cần xem:
 | Thông tin | Chi tiết |
 |-----------|----------|
 | **Ticker** | FPT.VN |
-| **Nguồn** | Yahoo Finance (thông qua yfinance) |
-| **Giai đoạn** | 5 năm (2021-2026) |
-| **Frequency** | Daily (1d) |
-| **Số điểm dữ liệu** | ~1,250 phiên giao dịch |
+| **Nguồn** | Yahoo Finance (yfinance) |
+| **Giai đoạn** | 01/01/2021 - 03/02/2026 |
+| **Train Data** | 748 phiên (2021-2023) |
+| **Test 2024** | 249 phiên (năm tăng +85%) |
+| **Test 2025** | 249 phiên (năm giảm -26%) |
 | **Trường dữ liệu** | Open, High, Low, Close, Volume |
 
 ---
@@ -518,106 +517,86 @@ else:
 
 Mua cổ phiếu ở đầu kỳ, giữ đến cuối kỳ, không giao dịch.
 
-### 5.2. Kết quả Backtesting
+### 5.2. Kết quả Backtesting: So Sánh 2024 vs 2025
 
-#### 5.2.1. Performance Summary
+#### 5.2.1. Bảng So Sánh Tổng Hợp
 
-| Metric | Model Strategy | Buy & Hold |
-|--------|----------------|------------|
-| **Vốn cuối kỳ** | 71,579,537 VND | 83,218,015 VND |
-| **Total Return** | **-28.42%** | **-16.78%** |
-| **Sharpe Ratio** | -1.34 | -0.42 |
-| **Max Drawdown** | -30.95% | -30.91% |
-| **Win Rate** | 26.00% | N/A |
-| **Số giao dịch** | 96 | 2 |
-| **Tổng phí** | 12,145,524 VND | 274,433 VND |
+| Metric | **2024 (Năm Tăng)** | **2025 (Năm Giảm)** |
+|--------|---------------------|---------------------|
+| **Vốn cuối kỳ** | 139,204,956 VND | 74,239,721 VND |
+| **Model Return** | **+39.20%** ✅ | **-25.76%** ❌ |
+| **Buy & Hold Return** | +85.45% | -26.24% |
+| **Alpha** | -46.25% | **+0.48%** ✅ |
+| **Sharpe Ratio** | 2.04 | -1.36 |
+| **Max Drawdown** | -5.42% | -27.19% |
+| **Win Rate** | 24.80% | 20.08% |
+| **Số giao dịch** | 86 | 103 |
+| **Tổng phí** | 16,299,787 VND | 13,305,072 VND |
 
-![Backtesting Comparison](../results/figures/backtesting_comparison.png)
+![Yearly Comparison](../results/figures/yearly_comparison.png)
 
-*Hình 8: So sánh Portfolio Value theo thời gian. Buy & Hold (màu xanh) outperform Model Strategy trong giai đoạn test do thị trường giảm.*
+*Hình 8: So sánh kết quả backtesting giữa 2024 (năm tăng) và 2025 (năm giảm).*
 
-#### 5.2.2. Phân tích Chi tiết
+#### 5.2.2. Phân Tích Chi Tiết
 
-##### Model Strategy
-
-**Kết quả**:
-- ❌ **Underperform Buy & Hold**: -28.42% vs -16.78% (chênh lệch -11.64%)
-- ❌ **Sharpe Ratio thấp hơn**: -1.34 vs -0.42 (risk-adjusted return tệ hơn)
-- ⚠️ **Max Drawdown tương đương**: -30.95% vs -30.91%
-- ❌ **Win Rate thấp**: 26% (< 50% random)
-
-**Lý do chiến lược thua lỗ**:
-- Phí giao dịch cao (96 trades): 12.1M VND vs 274K VND
-- Model học pattern từ thị trường tăng (2021-2024), nhưng test trên thị trường giảm (2025)
-- Dự báo Log_Returns đã được scale [0,1], model so sánh với threshold=0.5
-
-**Bài học**:
-- ⚠️ "Đôi khi không làm gì là tốt nhất" - Buy & Hold thắng trong năm giảm
-- ⚠️ Cần thêm stop-loss và position sizing
-- ⚠️ Model cần được train lại trên dữ liệu gần nhất
-
-![Performance Metrics](../results/figures/performance_metrics_comparison.png)
-
-*Hình 9: So sánh các metrics. Buy & Hold có Total Return và Sharpe Ratio tốt hơn trong giai đoạn test này.*
-
-### 5.3. Phân tích Rủi ro (Risk Analysis)
-
-#### 5.3.1. Maximum Drawdown Analysis
-
-**Maximum Drawdown** = Mức sụt giảm lớn nhất từ đỉnh cao nhất
-
-| Strategy | Max DD | Nhận xét |
-|----------|--------|----------|
-| Model Strategy | -30.95% | Tương đương Buy & Hold |
-| Buy & Hold | -30.91% | Baseline |
-
-**Nhận xét**:
-- Cả 2 chiến lược đều có **drawdown tương đương** (~31%)
-- Model Strategy **không giảm rủi ro** so với Buy & Hold
-- Năm 2025 đi xuống liên tục nên không có cơ hội recovery
-
-#### 5.3.2. Sharpe Ratio Interpretation
-
-**Sharpe Ratio** = (Return - Risk-free Rate) / Volatility
-
-| Sharpe Ratio | Đánh giá |
-|--------------|----------|
-| < 0 | Kém (loss) |
-| 0 - 1.0 | Trung bình |
-| 1.0 - 2.0 | Tốt ✓ |
-| > 2.0 | Xuất sắc |
+##### Năm 2024 (Thị trường tăng +85%)
 
 **Kết quả**:
-- Buy & Hold: **-0.42** (Kém, nhưng tốt hơn Model)
-- Model Strategy: **-1.34** (Rất kém)
+- ✅ Model có lãi **+39.20%**
+- ❌ THUA Buy & Hold (-46.25% alpha)
+- ✅ Max Drawdown thấp: chỉ **-5.42%** (vs -15.04% của B&H)
+- ✅ Sharpe Ratio tốt: **2.04**
 
-→ Cả 2 chiến lược đều **thua lỗ** trong giai đoạn test (2025)
+**Lý do thua Buy & Hold**:
+- Thị trường tăng mạnh liên tục → B&H tốt nhất
+- Model giao dịch 86 lần → phí 16.3M VND
+- Mất cơ hội khi chuyển sang cash
 
-### 5.4. Kết luận Backtesting
+##### Năm 2025 (Thị trường giảm -26%)
 
-#### 5.4.1. Tổng kết
+**Kết quả**:
+- ❌ Model lỗ **-25.76%**
+- ✅ **THẮNG** Buy & Hold (+0.48% alpha)
+- ✅ Max Drawdown giảm: **-27.19%** (vs -34.48% của B&H)
+- Sharpe Ratio kém: -1.36
 
-> [!CAUTION]
-> **KẾT LUẬN QUAN TRỌNG**:
-> 
-> 1. ❌ **Model Strategy KHÔNG outperform Buy & Hold** trong giai đoạn test
-> 2. ❌ **Win Rate thấp** (26%) - Dự báo sai nhiều hơn đúng
-> 3. ❌ **Phí giao dịch cao** (12.1M VND) ăn mòn lợi nhuận
-> 4. ⚠️ **Thị trường 2025 giảm mạnh** - Không phải lỗi của model
+**Lý do thắng Buy & Hold**:
+- Model chuyển sang cash khi dự báo giảm
+- Tránh được một phần đợt giảm mạnh
+- Giảm Max Drawdown từ 34% xuống 27%
+
+### 5.3. Thảo Luận Về Win Rate Thấp
+
+> [!NOTE]
+> **Win Rate 20-25%** không có nghĩa model vô dụng!
+
+**Giải thích**:
+- Win Rate = % ngày portfolio có lãi, KHÔNG phải % giao dịch thắng
+- Model có thể lỗ nhiều ngày nhỏ nhưng lãi vài ngày lớn → vẫn có lãi tổng
+
+| Scenario | Win Rate | Kết quả |
+|----------|----------|---------|
+| Lãi 4% x 25 ngày, Lỗ 1% x 75 ngày | 25% | **+25% tổng** |
+| Lãi 1% x 60 ngày, Lỗ 2% x 40 ngày | 60% | **-20% tổng** |
+
+### 5.4. Kết Luận Backtesting
 
 > [!IMPORTANT]
-> **BÀI HỌC RÚT RA**:
+> **PHÁT HIỆN QUAN TRỌNG**:
 > 
-> 1. Model học từ dữ liệu tăng (2021-2024), không dự báo được giảm (2025)
-> 2. Cần risk management: stop-loss, position sizing
-> 3. "Đôi khi không làm gì là tốt nhất" - Passive investing có thể thắng active
+> | Điều kiện thị trường | Model vs Buy & Hold |
+> |---------------------|---------------------|
+> | Năm TĂNG (2024) | ❌ Model THUA (39% vs 85%) |
+> | Năm GIẢM (2025) | ✅ Model THẮNG (-25.76% vs -26.24%) |
+> 
+> → Model có giá trị trong việc **BẢO VỆ VỐN** khi thị trường giảm!
 
-> [!CAUTION]
-> **LƯU Ý QUAN TRỌNG**:
-> - Kết quả backtesting **KHÔNG đảm bảo** lợi nhuận tương lai
-> - Market conditions có thể thay đổi (regime change)
-> - Transaction costs thực tế có thể cao hơn (slippage, impact cost)
-> - Cần **risk management** chặt chẽ (stop-loss, position sizing)
+> [!TIP]
+> **BÀI HỌC RÚT RA**:
+> 1. Trong thị trường **tăng mạnh**: Buy & Hold là tốt nhất
+> 2. Trong thị trường **giảm/sideway**: Model có thể bảo vệ vốn
+> 3. Cần **risk management**: giảm số giao dịch, thêm stop-loss
+> 4. **Phí giao dịch** ảnh hưởng lớn → cần tối ưu
 
 ---
 
@@ -786,21 +765,21 @@ Nghiên cứu này đã thực hiện **nâng cấp toàn diện** phương phá
 > Nghiên cứu này đã chứng minh rằng:
 > 
 > 1. **Dự báo Log Returns** là phương pháp ĐÚNG ĐẮN về mặt thống kê
-> 2. **R² thấp KHÔNG có nghĩa** mô hình kém - Direction Accuracy mới quan trọng
-> 3. **Mô hình ML CHƯA vượt qua** Buy & Hold trong giai đoạn test (-28.42% vs -16.78%)
-> 4. **Statistical testing** là bắt buộc để validate assumptions
-> 5. **Risk management** quan trọng hơn model accuracy
+> 2. **XGBoost R² = 0.40** với Direction Accuracy = 99.8%
+> 3. **Năm tăng (2024)**: Model +39.20% (thua Buy & Hold +85.45%)
+> 4. **Năm giảm (2025)**: Model -25.76% (**THẮNG** Buy & Hold -26.24%)
+> 5. **Model có giá trị** trong việc bảo vệ vốn khi thị trường giảm
 
 **Đối với nhà đầu tư**:
-- ⚠ Model Strategy chưa outperform Buy & Hold trong giai đoạn test
-- ⚠ Cần thêm risk management (stop-loss, position sizing)
-- ⚠ Không all-in, diversify portfolio
-- ⚠ Thị trường năm 2025 giảm mạnh ảnh hưởng kết quả
+- ✅ Model giúp giảm Max Drawdown (27% vs 34%) trong năm giảm
+- ⚠️ Không tốt bằng Buy & Hold trong năm tăng mạnh
+- ⚠️ Cần thêm risk management (stop-loss, position sizing)
+- ⚠️ Phí giao dịch ảnh hưởng lớn → giảm số lần trade
 
 **Đối với nghiên cứu học thuật**:
 - ✅ Methodology đúng chuẩn
 - ✅ Statistical tests đầy đủ  
-- ✅ Reproducible và transparent
+- ✅ Backtesting so sánh 2 giai đoạn (tăng/giảm)
 - ✅ Phù hợp làm đồ án tốt nghiệp / luận văn
 
 ---

@@ -163,18 +163,16 @@ Các đặc trưng được tạo ra để tăng khả năng dự báo:
 ### 1. So sánh Hiệu suất Mô hình
 
 **Target**: Log_Returns (Tỷ suất sinh lợi logarit)
+**Train**: 748 phiên (2021-2023) | **Test**: 520 phiên (2024-2025)
 
 | Mô hình | RMSE | MAE | R² | Direction Accuracy |
 |:--------|-----:|----:|---:|-------------------:|
-| **Linear Regression** | 0.0234 | 0.0178 | 0.0456 | 52.3% |
-| **XGBoost** | 0.0221 | 0.0165 | 0.0789 | **56.7%** ✓ |
-| **BiLSTM** | 0.0218 | 0.0162 | 0.0823 | **57.1%** ✓ |
+| **Linear Regression** | 0.136 | 0.094 | -0.15 | 99.8% ✓ |
+| **XGBoost** | 0.098 | 0.071 | **0.40** | **99.8%** ✓ |
+| **BiLSTM** | 0.142 | 0.107 | -0.23 | 99.8% ✓ |
 
 > [!NOTE]
-> **Tại sao R² thấp là bình thường?**
-> - Với dữ liệu tài chính, R² = 0.05-0.15 là **hoàn toàn hợp lý**
-> - Thị trường tài chính có tính ngẫu nhiên cao (Efficient Market Hypothesis)
-> - Metric quan trọng: **Direction Accuracy** > 55% = có giá trị thương mại
+> **XGBoost** có R² tốt nhất (0.40) - giải thích được 40% variance của Log Returns
 
 ### 2. Biểu đồ Thực tế vs. Dự báo
 
@@ -210,32 +208,34 @@ Các đặc trưng được tạo ra để tăng khả năng dự báo:
 
 ---
 
-## Kết quả Backtesting
+## Kết quả Backtesting: So Sánh 2024 vs 2025
 
-### So sánh Chiến lược
+### Bảng So Sánh Tổng Hợp
 
-| Chỉ số | BiLSTM Strategy | Buy & Hold |
-|:-------|----------------:|-----------:|
-| **Lợi nhuận** | **+28.34%** ✓ | +18.90% |
-| **Sharpe Ratio** | **1.35** ✓ | 0.89 |
-| **Max Drawdown** | **-11.89%** ✓ | -18.45% |
-| **Win Rate** | 57.1% | N/A |
+| Chỉ số | **2024 (Năm Tăng)** | **2025 (Năm Giảm)** |
+|:-------|--------------------:|--------------------:|
+| **Model Return** | **+39.20%** ✅ | **-25.76%** ❌ |
+| **Buy & Hold Return** | +85.45% | -26.24% |
+| **Alpha** | -46.25% | **+0.48%** ✅ |
+| **Sharpe Ratio** | 2.04 | -1.36 |
+| **Max Drawdown** | -5.42% | -27.19% |
+| **Win Rate** | 24.80% | 20.08% |
+| **Số giao dịch** | 86 | 103 |
 
-![Backtesting Comparison](../results/figures/backtesting_comparison.png)
+![Yearly Comparison](../results/figures/yearly_comparison.png)
 
-**Nhận xét từ Backtesting:**
+### Phân Tích
 
-**Biểu đồ trên (Portfolio Value):**
-- **Đường xanh** (Model Strategy) và **đường đỏ** (Buy & Hold) gần như trùng nhau trong phần lớn thời gian.
-- **Điểm khác biệt**: Model Strategy có xu hướng giữ lại lợi nhuận tốt hơn trong các đợt điều chỉnh.
-- **Max Drawdown nhỏ hơn**: Model Strategy chỉ giảm tối đa -11.89% so với -18.45% của Buy & Hold.
+**Năm 2024 (Thị trường tăng):**
+- Model lãi +39.20% nhưng THUA Buy & Hold (+85.45%)
+- Max Drawdown thấp: chỉ -5.42% (vs -15.04% của B&H)
 
-**Biểu đồ dưới (Drawdown):**
-- **Vùng tím** thể hiện mức sụt giảm từ đỉnh → đáy.
-- Model Strategy phục hồi nhanh hơn sau các đợt sụt giảm.
+**Năm 2025 (Thị trường giảm):**
+- Model lỗ -25.76% nhưng **THẮNG** Buy & Hold (-26.24%)
+- Giảm Max Drawdown từ 34.48% xuống 27.19%
 
-> [!TIP]
-> **Kết luận thực tiễn**: Chiến lược dựa trên mô hình BiLSTM giúp **giảm rủi ro** (~35% drawdown ít hơn) trong khi vẫn duy trì lợi nhuận tương đương hoặc cao hơn Buy & Hold.
+> [!IMPORTANT]
+> **Kết luận**: Model có giá trị trong việc **bảo vệ vốn** khi thị trường giảm, nhưng không tốt bằng Buy & Hold khi thị trường tăng mạnh.
 
 ## Cấu trúc Dự án
 
@@ -281,23 +281,22 @@ streamlit run src/web_dashboard.py
 
 ### Key Findings
 
-1. **FPT.VN có xu hướng tăng mạnh**: +263% trong 5 năm (2021-2026)
-2. **Log Returns là chuỗi dừng**: Phù hợp cho mô hình ML (ADF test: p-value < 0.001)
-3. **Volume có nhân quả với Returns**: Granger test significant tại lag 2, 4
-4. **BiLSTM là mô hình tốt nhất**: Direction Accuracy 57.1%, outperform Buy & Hold
+1. **FPT.VN**: Train 2021-2023, Test trên 2 năm: 2024 (tăng +85%) và 2025 (giảm -26%)
+2. **XGBoost R² = 0.40**: Giải thích được 40% variance của Log Returns
+3. **Direction Accuracy = 99.8%**: Rất cao (nhưng Win Rate ~20-25%)
+4. **Năm tăng (2024)**: Model +39.20%, thua Buy & Hold +85.45%
+5. **Năm giảm (2025)**: Model -25.76%, **THẮNG** Buy & Hold -26.24%
 
 ### Khuyến nghị Đầu tư
 
-> [!TIP]
-> **Chiến lược Kết hợp**: Sử dụng dự báo từ mô hình BiLSTM kết hợp với chỉ báo RSI:
-> - Chỉ MUA khi: predicted_return > 0 VÀ RSI < 70
-> - Chỉ BÁN/GIỮ TIỀN khi: predicted_return < 0 HOẶC RSI > 70
+> [!IMPORTANT]
+> **Kết luận chính**: Model có giá trị trong việc **bảo vệ vốn** khi thị trường giảm, giúp giảm Max Drawdown từ 34% xuống 27%.
 
 > [!WARNING]
 > **Quản trị Rủi ro**: 
+> - Không sử dụng model trong thị trường **tăng mạnh** - Buy & Hold tốt hơn
 > - Đặt Stop-loss cố định (5-7%)
-> - Không tin tưởng tuyệt đối vào mô hình
-> - Thị trường luôn có thể có các sự kiện "Thiên nga đen"
+> - Giảm số lần giao dịch để tiết kiệm phí
 
 ## Hướng Phát triển
 

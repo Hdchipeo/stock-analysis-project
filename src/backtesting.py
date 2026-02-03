@@ -438,20 +438,21 @@ def calculate_drawdown(portfolio_values):
     return drawdown
 
 
-def run_backtesting(predictions_file="predictions.csv", test_data_file="test_data.csv"):
+def run_backtesting(predictions_file="predictions_returns.csv", test_data_file="test_data.csv", year_label=""):
     """
     Chạy backtesting cho mô hình dự báo
     
     Input:
     - predictions_file: File chứa dự báo của mô hình
     - test_data_file: File chứa dữ liệu test (giá thực tế)
+    - year_label: Nhãn năm để hiển thị (vd: "2024", "2025")
     
     Output:
-    - Kết quả backtesting được lưu vào results/backtesting_metrics.csv
-    - Các biểu đồ so sánh
+    - Dict kết quả backtesting
     """
-    print("\n" + "="*80)
-    print(" " * 30 + "BACKTESTING MODULE")
+    label = f" ({year_label})" if year_label else ""
+    print(f"\n{'='*80}")
+    print(f"{' '*25}BACKTESTING MODULE{label}")
     print("="*80 + "\n")
     
     # Load data
@@ -463,7 +464,11 @@ def run_backtesting(predictions_file="predictions.csv", test_data_file="test_dat
     if not os.path.exists(predictions_path):
         print(f"Lỗi: Không tìm thấy {predictions_path}")
         print("Vui lòng chạy modeling.py trước")
-        return
+        return None
+    
+    if not os.path.exists(test_data_path):
+        print(f"Lỗi: Không tìm thấy {test_data_path}")
+        return None
     
     # Load predictions
     predictions_df = pd.read_csv(predictions_path, index_col='Date', parse_dates=True)
@@ -479,20 +484,30 @@ def run_backtesting(predictions_file="predictions.csv", test_data_file="test_dat
     
     actual_prices = test_df['Close'].apply(inverse_scale)
     
-    # Get predicted returns (assuming model predicted Log_Returns)
-    # Need to check if predictions contain Log_Returns or Close
+    # Align predictions with test data dates
+    common_dates = predictions_df.index.intersection(test_df.index)
+    if len(common_dates) == 0:
+        print(f"Lỗi: Không có ngày chung giữa predictions và test data cho {year_label}")
+        return None
+    
+    predictions_df = predictions_df.loc[common_dates]
+    actual_prices = actual_prices.loc[common_dates]
+    
+    print(f"Số phiên giao dịch: {len(common_dates)}")
+    print(f"Từ {common_dates.min().strftime('%Y-%m-%d')} đến {common_dates.max().strftime('%Y-%m-%d')}")
+    
+    # Get predicted returns
     if 'XGBoost_Returns' in predictions_df.columns:
         pred_returns = predictions_df['XGBoost_Returns']
-    elif 'XGBoost' in predictions_df.columns:
-        # Convert price predictions to returns
-        pred_returns = predictions_df['XGBoost'].pct_change()
+    elif 'BiLSTM_Returns' in predictions_df.columns:
+        pred_returns = predictions_df['BiLSTM_Returns']
     else:
         print("Lỗi: Không tìm thấy cột dự báo trong predictions file")
-        return
+        return None
     
     # Create predictions dataframe for backtesting
     backtest_df = pd.DataFrame({
-        'Predicted_Returns': pred_returns[:len(actual_prices)-1]  # -1 because we need next price
+        'Predicted_Returns': pred_returns[:len(actual_prices)-1]
     }, index=actual_prices.index[:len(pred_returns)])
     
     # Initialize backtesting engine
@@ -501,25 +516,186 @@ def run_backtesting(predictions_file="predictions.csv", test_data_file="test_dat
     # Run Model Strategy
     model_results = engine.simple_long_strategy(backtest_df, actual_prices)
     
-    # Run Buy & Hold Strategy
+    # Run Buy & Hold Strategy  
     baseline_results = engine.buy_and_hold_strategy(actual_prices)
     
     # Compare strategies
     comparison = engine.compare_strategies(model_results, baseline_results)
     
-    # Save results
-    results_path = os.path.join(base_dir, "results", "backtesting_metrics.csv")
-    comparison.to_csv(results_path, index=False)
-    print(f"\n✓ Đã lưu kết quả backtesting vào: {results_path}")
+    return {
+        'model_results': model_results,
+        'baseline_results': baseline_results,
+        'comparison': comparison,
+        'year': year_label
+    }
+
+
+def run_yearly_comparison():
+    """
+    Chạy backtesting so sánh 2 năm: 2024 và 2025
+    """
+    print("\n" + "█"*80)
+    print(" "*20 + "SO SÁNH BACKTESTING: 2024 vs 2025")
+    print("█"*80 + "\n")
     
-    # Plot comparison
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     results_dir = os.path.join(base_dir, "results", "figures")
-    plot_backtest_comparison(model_results, baseline_results, results_dir)
     
-    print("\n" + "="*80)
-    print(" " * 28 + "BACKTESTING HOÀN THÀNH")
-    print("="*80 + "\n")
+    # Chạy backtesting cho năm 2024
+    print("\n" + "="*60)
+    print(" "*20 + "NĂM 2024")
+    print("="*60)
+    results_2024 = run_backtesting(
+        predictions_file="predictions_returns.csv",
+        test_data_file="test_2024.csv",
+        year_label="2024"
+    )
+    
+    # Chạy backtesting cho năm 2025
+    print("\n" + "="*60)
+    print(" "*20 + "NĂM 2025")
+    print("="*60)
+    results_2025 = run_backtesting(
+        predictions_file="predictions_returns.csv",
+        test_data_file="test_2025.csv",
+        year_label="2025"
+    )
+    
+    # So sánh 2 năm
+    if results_2024 and results_2025:
+        print("\n" + "█"*80)
+        print(" "*25 + "BẢNG SO SÁNH TỔNG HỢP")
+        print("█"*80 + "\n")
+        
+        comparison_data = {
+            'Metric': [
+                'Vốn cuối kỳ (VND)',
+                'Total Return (%)',
+                'Sharpe Ratio',
+                'Max Drawdown (%)',
+                'Win Rate (%)',
+                'Số giao dịch',
+                'Tổng phí (VND)',
+                'Buy & Hold Return (%)',
+                'Alpha (%)'
+            ],
+            '2024 Model': [
+                f"{results_2024['model_results']['final_capital']:,.0f}",
+                f"{results_2024['model_results']['total_return_pct']:.2f}%",
+                f"{results_2024['model_results']['sharpe_ratio']:.4f}",
+                f"{results_2024['model_results']['max_drawdown']:.2f}%",
+                f"{results_2024['model_results']['win_rate']:.2f}%",
+                f"{results_2024['model_results']['num_trades']}",
+                f"{results_2024['model_results']['total_commission']:,.0f}",
+                f"{results_2024['baseline_results']['total_return_pct']:.2f}%",
+                f"{results_2024['model_results']['total_return_pct'] - results_2024['baseline_results']['total_return_pct']:.2f}%"
+            ],
+            '2025 Model': [
+                f"{results_2025['model_results']['final_capital']:,.0f}",
+                f"{results_2025['model_results']['total_return_pct']:.2f}%",
+                f"{results_2025['model_results']['sharpe_ratio']:.4f}",
+                f"{results_2025['model_results']['max_drawdown']:.2f}%",
+                f"{results_2025['model_results']['win_rate']:.2f}%",
+                f"{results_2025['model_results']['num_trades']}",
+                f"{results_2025['model_results']['total_commission']:,.0f}",
+                f"{results_2025['baseline_results']['total_return_pct']:.2f}%",
+                f"{results_2025['model_results']['total_return_pct'] - results_2025['baseline_results']['total_return_pct']:.2f}%"
+            ]
+        }
+        
+        comparison_df = pd.DataFrame(comparison_data)
+        print(comparison_df.to_string(index=False))
+        
+        # Đánh giá
+        print("\n" + "─"*80)
+        print("📊 ĐÁNH GIÁ:")
+        print("─"*80)
+        
+        ret_2024 = results_2024['model_results']['total_return_pct']
+        ret_2025 = results_2025['model_results']['total_return_pct']
+        bh_2024 = results_2024['baseline_results']['total_return_pct']
+        bh_2025 = results_2025['baseline_results']['total_return_pct']
+        
+        if ret_2024 > 0:
+            print(f"   ✅ 2024: Model có lãi {ret_2024:.2f}%")
+        else:
+            print(f"   ❌ 2024: Model lỗ {ret_2024:.2f}%")
+            
+        if ret_2025 > 0:
+            print(f"   ✅ 2025: Model có lãi {ret_2025:.2f}%")
+        else:
+            print(f"   ❌ 2025: Model lỗ {ret_2025:.2f}%")
+        
+        if ret_2024 > bh_2024:
+            print(f"   ✅ 2024: Model THẮNG Buy & Hold ({ret_2024:.2f}% vs {bh_2024:.2f}%)")
+        else:
+            print(f"   ❌ 2024: Model THUA Buy & Hold ({ret_2024:.2f}% vs {bh_2024:.2f}%)")
+            
+        if ret_2025 > bh_2025:
+            print(f"   ✅ 2025: Model THẮNG Buy & Hold ({ret_2025:.2f}% vs {bh_2025:.2f}%)")
+        else:
+            print(f"   ❌ 2025: Model THUA Buy & Hold ({ret_2025:.2f}% vs {bh_2025:.2f}%)")
+        
+        print("─"*80)
+        
+        # Lưu kết quả
+        results_path = os.path.join(base_dir, "results", "backtesting_yearly_comparison.csv")
+        comparison_df.to_csv(results_path, index=False)
+        print(f"\n✓ Đã lưu kết quả so sánh vào: {results_path}")
+        
+        # Vẽ biểu đồ so sánh
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        
+        # Plot 1: Return comparison
+        years = ['2024', '2025']
+        model_returns = [ret_2024, ret_2025]
+        bh_returns = [bh_2024, bh_2025]
+        
+        x = np.arange(len(years))
+        width = 0.35
+        
+        axes[0, 0].bar(x - width/2, model_returns, width, label='Model Strategy', color='#2ecc71' if ret_2024 > 0 else '#e74c3c')
+        axes[0, 0].bar(x + width/2, bh_returns, width, label='Buy & Hold', color='#3498db')
+        axes[0, 0].set_ylabel('Return (%)')
+        axes[0, 0].set_title('So sánh Return: Model vs Buy & Hold')
+        axes[0, 0].set_xticks(x)
+        axes[0, 0].set_xticklabels(years)
+        axes[0, 0].legend()
+        axes[0, 0].axhline(y=0, color='black', linestyle='--', alpha=0.3)
+        
+        # Plot 2: Win Rate
+        win_rates = [results_2024['model_results']['win_rate'], results_2025['model_results']['win_rate']]
+        colors = ['#2ecc71' if wr > 50 else '#e74c3c' for wr in win_rates]
+        axes[0, 1].bar(years, win_rates, color=colors)
+        axes[0, 1].axhline(y=50, color='black', linestyle='--', alpha=0.3, label='Random (50%)')
+        axes[0, 1].set_ylabel('Win Rate (%)')
+        axes[0, 1].set_title('Win Rate theo năm')
+        axes[0, 1].legend()
+        
+        # Plot 3: Number of trades
+        num_trades = [results_2024['model_results']['num_trades'], results_2025['model_results']['num_trades']]
+        axes[1, 0].bar(years, num_trades, color='#9b59b6')
+        axes[1, 0].set_ylabel('Số giao dịch')
+        axes[1, 0].set_title('Số lượng giao dịch theo năm')
+        
+        # Plot 4: Max Drawdown
+        max_dd = [results_2024['model_results']['max_drawdown'], results_2025['model_results']['max_drawdown']]
+        axes[1, 1].bar(years, max_dd, color='#e74c3c')
+        axes[1, 1].set_ylabel('Max Drawdown (%)')
+        axes[1, 1].set_title('Max Drawdown theo năm')
+        
+        plt.tight_layout()
+        chart_path = os.path.join(results_dir, 'yearly_comparison.png')
+        plt.savefig(chart_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        print(f"   → Đã lưu biểu đồ: yearly_comparison.png")
+    
+    print("\n" + "█"*80)
+    print(" "*25 + "BACKTESTING HOÀN THÀNH")
+    print("█"*80 + "\n")
+    
+    return results_2024, results_2025
 
 
 if __name__ == "__main__":
-    run_backtesting()
+    run_yearly_comparison()

@@ -155,23 +155,37 @@ def preprocess_stock_data(filename="stock_data.csv"):
     df_scaled['Outlier'] = df_features['Outlier']
     print("4. Đã chuẩn hóa dữ liệu [0, 1].")
 
-    # 6. Phân chia tập dữ liệu
-    split_idx = int(len(df_scaled) * 0.8)
-    train_df = df_scaled.iloc[:split_idx]
-    test_df = df_scaled.iloc[split_idx:]
+    # 6. Phân chia tập dữ liệu theo năm
+    # Train: 2021-2023 (3 năm)
+    # Test 1: 2024 (1 năm)
+    # Test 2: 2025 (1 năm)
     
-    print(f"5. Đã chia tập dữ liệu: Train ({len(train_df)}), Test ({len(test_df)}).")
+    train_df = df_scaled[df_scaled.index.year <= 2023]
+    test_2024_df = df_scaled[df_scaled.index.year == 2024]
+    test_2025_df = df_scaled[df_scaled.index.year == 2025]
+    
+    # Tạo test_df mặc định (2024 + 2025) cho compatibility với modeling.py
+    test_df = df_scaled[df_scaled.index.year >= 2024]
+    
+    print(f"5. Đã chia tập dữ liệu:")
+    print(f"   - Train: {len(train_df)} phiên (2021-2023)")
+    print(f"   - Test 2024: {len(test_2024_df)} phiên")
+    print(f"   - Test 2025: {len(test_2025_df)} phiên")
 
     # Lưu kết quả
     df_scaled.to_csv(os.path.join(data_processed_dir, 'preprocessed_data.csv'))
     train_df.to_csv(os.path.join(data_processed_dir, 'train_data.csv'))
     test_df.to_csv(os.path.join(data_processed_dir, 'test_data.csv'))
+    test_2024_df.to_csv(os.path.join(data_processed_dir, 'test_2024.csv'))
+    test_2025_df.to_csv(os.path.join(data_processed_dir, 'test_2025.csv'))
     
     # Save Scaling Params
     with open(os.path.join(data_processed_dir, "scaling_params.json"), "w") as f:
         json.dump(scaling_params, f)
         
-    print(f"6. Đã lưu dữ liệu và tham số scaling ({scaling_params}) vào 'data/processed/'.")
+    print(f"6. Đã lưu dữ liệu và tham số scaling vào 'data/processed/'.")
+    print(f"   - test_2024.csv: Dữ liệu năm 2024")
+    print(f"   - test_2025.csv: Dữ liệu năm 2025")
 
     return train_df, test_df
 
