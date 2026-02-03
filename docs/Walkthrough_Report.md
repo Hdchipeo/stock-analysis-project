@@ -98,11 +98,11 @@ Các đặc trưng được tạo ra để tăng khả năng dự báo:
 
 ![Trend Analysis](../results/figures/trend_analysis.png)
 
-**Nhận xét:**
-- **Xu hướng tăng mạnh**: Cổ phiếu FPT có xu hướng tăng giá rõ ràng trong 1 năm gần nhất, từ khoảng 95,000 VND lên đỉnh 130,000 VND.
-- **Đường MA30** (đường xanh) đóng vai trò hỗ trợ/kháng cự động, khi giá vượt lên trên MA30 thường tiếp tục tăng.
-- **Volume đột biến**: Các phiên có volume cao (>20 triệu cổ phiếu) thường xuất hiện tại điểm đảo chiều xu hướng.
-- **Điều chỉnh**: Có 2 đợt điều chỉnh lớn: tháng 6/2025 và tháng 11/2025, mỗi đợt giảm khoảng 15-20%.
+**Nhận xét (Toàn bộ giai đoạn 2021-2026):**
+- **Phase 1 - Tăng mạnh (2021-2024)**: FPT tăng từ ~30,000 VND lên đỉnh ~130,000 VND (+340%), là giai đoạn bull market rõ rệt.
+- **Phase 2 - Điều chỉnh (2025)**: Giá giảm từ đỉnh ~130,000 VND xuống ~95,000 VND (-26%), phản ánh xu hướng chung của thị trường.
+- **Đường MA30**: Đóng vai trò hỗ trợ trong giai đoạn tăng (2021-2024) và kháng cự trong giai đoạn giảm (2025).
+- **Volume**: Các đợt volume đột biến thường xuất hiện tại điểm đảo chiều quan trọng (đỉnh Q1/2025).
 
 ---
 
@@ -145,18 +145,19 @@ Các đặc trưng được tạo ra để tăng khả năng dự báo:
 ![Seasonality Analysis](../results/figures/seasonality_analysis.png)
 
 **Nhận xét theo Tháng (biểu đồ trái):**
-- **Tháng 1, 12**: Volume cao nhất - nhà đầu tư tái cân bằng danh mục cuối/đầu năm
-- **Tháng 2**: Volume thấp nhất - ảnh hưởng kỳ nghỉ Tết Nguyên đán
-- **Tháng 6-8**: Volume ổn định ở mức trung bình
-- **Nhiều outliers**: Các chấm tròn bên ngoài boxplot cho thấy nhiều phiên giao dịch đột biến
+- **Volume khá đồng đều** giữa các tháng, không có xu hướng mùa vụ rõ rệt
+- **Median tương đương**: Đường kẻ giữa mỗi boxplot gần như cùng mức (~4-5 triệu)
+- **Nhiều outliers**: Các điểm tròn phía trên cho thấy nhiều phiên giao dịch đột biến, đặc biệt tháng 4, 10, 11
+- **Kết luận**: Không có "January Effect" hay "December Effect" rõ ràng ở FPT
 
 **Nhận xét theo Ngày trong tuần (biểu đồ phải):**
-- **Thứ 2 (Monday)**: Volume cao nhất - hiệu ứng "Monday Effect" do tích lũy thông tin cuối tuần
-- **Thứ 6 (Friday)**: Volume thấp nhất - nhà đầu tư tránh nắm giữ qua cuối tuần
-- **Thứ 3-5**: Volume ổn định, ít biến động
+- **Volume tương đương** giữa các ngày từ Monday đến Friday
+- **Không có "Monday Effect"** hay "Friday Effect" như lý thuyết
+- **Distribution đồng đều**: Cả 5 ngày có median và IQR gần như giống nhau
+- **Kết luận**: Day-of-Week KHÔNG phải là yếu tố quan trọng cho dự báo Volume của FPT
 
 > [!NOTE]
-> **Ứng dụng**: Có thể sử dụng Day-of-Week và Month làm features bổ sung cho mô hình dự báo.
+> **Ứng dụng**: Kết quả này cho thấy việc thêm Day-of-Week hay Month làm features **có thể không cải thiện** đáng kể mô hình dự báo.
 
 ## Mô hình hóa (Modeling)
 
@@ -178,11 +179,20 @@ Các đặc trưng được tạo ra để tăng khả năng dự báo:
 
 ![Model Comparison](../results/figures/model_comparison_returns.png)
 
-**Nhận xét:**
-- **Linear Regression** (đường đỏ đứt): Dự báo khá phẳng, bám sát giá trị trung bình, không nắm bắt được biến động ngắn hạn.
-- **XGBoost** (đường xanh lá đứt): Phản ứng nhanh hơn với thay đổi, bắt được một số đỉnh/đáy nhưng vẫn có độ trễ.
-- **BiLSTM** (đường cam đứt): Cho dự báo mượt nhất, thể hiện khả năng học các pattern dài hạn từ chuỗi thời gian.
-- **Thử thách với dữ liệu tài chính**: Cả 3 mô hình đều khó dự báo chính xác magnitude của biến động, nhưng đạt được mục tiêu dự báo direction (hướng đi).
+**Giải thích biểu đồ:**
+- **Đường đen liền**: Log Returns thực tế (đã scaled 0-1, với 0.5 = không đổi)
+- **Đường đứt nét**: Dự báo của từng model
+
+**Nhận xét thực tế:**
+- **Linear Regression** (đường đỏ đứt): Dao động nhẹ quanh 0.5, có phản ứng với actual nhưng với độ trễ (lag).
+- **XGBoost** (đường xanh đứt): Gần như **phẳng** quanh 0.5, ít phản ứng với biến động thực tế.
+- **BiLSTM** (đường cam đứt): **Rất phẳng** quanh 0.5, gần như đường thẳng ngang.
+
+> [!WARNING]
+> **Điều cần lưu ý**:
+> - Các model dự báo gần 0.5 = dự báo "không thay đổi nhiều"
+> - **Direction Accuracy 99.8%** cao vì phần lớn ngày thực tế cũng dao động nhỏ quanh 0.5
+> - Model không bắt được các **đỉnh/đáy cực đoan** (biến động mạnh)
 
 ---
 
@@ -194,17 +204,17 @@ Các đặc trưng được tạo ra để tăng khả năng dự báo:
 
 | Hạng | Feature | F-Score | Ý nghĩa |
 |:----:|---------|--------:|---------|
-| 1 | **RSI_14** | 4,208 | Chỉ báo momentum quan trọng nhất |
-| 2 | **MACD_12_26_9** | 2,961 | Xác nhận xu hướng ngắn/dài hạn |
-| 3 | **Volume_Change** | 2,409 | Thanh khoản dự báo biến động |
-| 4 | **Returns_Lag_1** | 2,378 | Momentum 1 ngày |
-| 5 | **Volatility_30** | 2,121 | Mức độ rủi ro gần đây |
+| 1 | **RSI_14** | 4,059 | Chỉ báo momentum quan trọng nhất |
+| 2 | **MACD_12_26_9** | 2,713 | Xác nhận xu hướng ngắn/dài hạn |
+| 3 | **Returns_Lag_1** | 2,366 | Momentum 1 ngày |
+| 4 | **Volume_Change** | 2,214 | Thanh khoản dự báo biến động |
+| 5 | **Returns_Lag_3** | 1,975 | Momentum 3 ngày |
 
 > [!IMPORTANT]
 > **Insights quan trọng:**
 > - **RSI và MACD** là 2 features quan trọng nhất → Chỉ báo kỹ thuật có giá trị dự báo thực sự!
-> - **Volume_Change** top 3 → Xác nhận mối quan hệ nhân quả Volume → Returns (từ Granger test)
-> - **Volume_Shock** ít quan trọng (rank cuối) → Binary features không hiệu quả bằng continuous features
+> - **Returns_Lag** (1 và 3 ngày) rất quan trọng → Momentum effect có trong FPT
+> - **Volume_Shock** ít quan trọng nhất (129) → Binary features không hiệu quả bằng continuous features
 
 ---
 

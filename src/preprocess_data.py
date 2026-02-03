@@ -147,13 +147,20 @@ def preprocess_stock_data(filename="stock_data.csv"):
     scaling_params = {"Close_min": float(close_min), "Close_max": float(close_max)}
     
     # 5. Chuẩn hóa dữ liệu (Feature Scaling)
+    # QUAN TRỌNG: KHÔNG scale Log_Returns để Direction Accuracy có ý nghĩa
+    # np.sign() cần giá trị gốc (có thể âm/dương) để xác định hướng
     scaler = MinMaxScaler(feature_range=(0, 1))
-    cols_to_scale = df_features.columns.drop('Outlier')
+    cols_to_scale = df_features.columns.drop(['Outlier', 'Log_Returns'])
+    
+    # Scale các features (không bao gồm Log_Returns)
     df_scaled = pd.DataFrame(scaler.fit_transform(df_features[cols_to_scale]), 
                              columns=cols_to_scale, 
                              index=df_features.index)
+    
+    # Thêm lại Log_Returns và Outlier (không scale)
+    df_scaled['Log_Returns'] = df_features['Log_Returns']
     df_scaled['Outlier'] = df_features['Outlier']
-    print("4. Đã chuẩn hóa dữ liệu [0, 1].")
+    print("4. Đã chuẩn hóa features [0, 1] (Log_Returns giữ nguyên gốc).")
 
     # 6. Phân chia tập dữ liệu theo năm
     # Train: 2021-2023 (3 năm)

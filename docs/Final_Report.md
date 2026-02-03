@@ -273,32 +273,31 @@ Ba mô hình được triển khai để dự báo Log Returns:
 
 #### 3.2.1. Metrics Summary
 
-| Mô hình | RMSE | MAE | R² | Direction Accuracy |
-|---------|------|-----|----|--------------------|
-| **Linear Regression** | 0.0234 | 0.0178 | 0.0456 | 52.3% |
-| **XGBoost** | 0.0221 | 0.0165 | 0.0789 | 56.7% ✓ |
-| **BiLSTM** | 0.0218 | 0.0162 | 0.0823 | 57.1% ✓ |
+| Mô hình | RMSE | MAE | R² | Direction Accuracy | Training Time |
+|---------|------|-----|----|--------------------|---------------|
+| **Linear Regression** | 0.019 | 0.013 | -0.15 | 63.1% | ~1 giây |
+| **XGBoost** | 0.014 | 0.010 | **0.41** ✓ | **71.5%** ✓ | ~5 giây |
+| **BiLSTM** | 0.018 | 0.013 | -0.001 | 49.4% | ~2-3 phút |
 
 > [!NOTE]
-> **Giải thích R² thấp**: R² = 0.08 nghĩa là mô hình giải thích được 8% variance của Log Returns. Đây là con số **BÌN THƯỜNG** và **HỢP LÝ** với dữ liệu tài chính do tính ngẫu nhiên cao của thị trường.
+> **XGBoost** là model tốt nhất với R² = 0.41 và Direction Accuracy = 71.5%
 
 #### 3.2.2. Phân tích Direction Accuracy
 
 **Direction Accuracy** là metric **quan trọng nhất** cho trading:
 
-- **Linear Regression: 52.3%** → Hơi tốt hơn random (50%), **chưa đủ** để trading
-- **XGBoost: 56.7%** → **Có giá trị thương mại** ✓
-- **BiLSTM: 57.1%** → **Tốt nhất**, có tiềm năng profitable trading ✓
+- **Linear Regression: 63.1%** → Có giá trị thương mại ✓
+- **XGBoost: 71.5%** → **TỐT NHẤT**, dự đoán đúng hướng 71.5% ✓
+- **BiLSTM: 49.4%** → Không tốt hơn random (50%)
 
-**Ý nghĩa thực tiễn**:
-- Với Direction Accuracy = 57%, nếu trading 100 lần:
-  - **57 lần đúng hướng** (profit)
-  - **43 lần sai hướng** (loss)
-  - Có thể sinh lời nếu risk management tốt
+> [!IMPORTANT]
+> **Ý nghĩa thực tiễn**: 
+> - Với Direction Accuracy = 71.5%, trading 100 lần sẽ đúng hướng **71-72 lần**
+> - Đây là metric **có ý nghĩa thực sự** vì Log_Returns giữ nguyên gốc (>0 = tăng, <0 = giảm)
 
 ![Model Comparison](../results/figures/model_comparison_returns.png)
 
-*Hình 5: So sánh Actual vs Predicted Returns cho 3 mô hình trong 100 ngày cuối. XGBoost và BiLSTM bám sát actual returns tốt hơn Linear Regression.*
+*Hình 5: So sánh Actual vs Predicted Returns.*
 
 ---
 
@@ -523,15 +522,15 @@ Mua cổ phiếu ở đầu kỳ, giữ đến cuối kỳ, không giao dịch.
 
 | Metric | **2024 (Năm Tăng)** | **2025 (Năm Giảm)** |
 |--------|---------------------|---------------------|
-| **Vốn cuối kỳ** | 139,204,956 VND | 74,239,721 VND |
-| **Model Return** | **+39.20%** ✅ | **-25.76%** ❌ |
+| **Vốn cuối kỳ** | 131,936,708 VND | 72,898,861 VND |
+| **Model Return** | **+31.94%** ✅ | **-27.10%** ❌ |
 | **Buy & Hold Return** | +85.45% | -26.24% |
-| **Alpha** | -46.25% | **+0.48%** ✅ |
-| **Sharpe Ratio** | 2.04 | -1.36 |
-| **Max Drawdown** | -5.42% | -27.19% |
-| **Win Rate** | 24.80% | 20.08% |
-| **Số giao dịch** | 86 | 103 |
-| **Tổng phí** | 16,299,787 VND | 13,305,072 VND |
+| **Alpha** | -53.52% | -0.86% |
+| **Sharpe Ratio** | 1.99 | -1.51 |
+| **Max Drawdown** | -6.40% | -28.51% |
+| **Win Rate** | 17.60% | 16.06% |
+| **Số giao dịch** | 80 | 103 |
+| **Tổng phí** | 15,066,846 VND | 13,243,001 VND |
 
 ![Yearly Comparison](../results/figures/yearly_comparison.png)
 
@@ -542,28 +541,27 @@ Mua cổ phiếu ở đầu kỳ, giữ đến cuối kỳ, không giao dịch.
 ##### Năm 2024 (Thị trường tăng +85%)
 
 **Kết quả**:
-- ✅ Model có lãi **+39.20%**
-- ❌ THUA Buy & Hold (-46.25% alpha)
-- ✅ Max Drawdown thấp: chỉ **-5.42%** (vs -15.04% của B&H)
-- ✅ Sharpe Ratio tốt: **2.04**
+- ✅ Model có lãi **+31.94%**
+- ❌ THUA Buy & Hold (-53.52% alpha)
+- ✅ Max Drawdown thấp: chỉ **-6.40%** (vs -15.04% của B&H)
+- ✅ Sharpe Ratio tốt: **1.99**
 
 **Lý do thua Buy & Hold**:
 - Thị trường tăng mạnh liên tục → B&H tốt nhất
-- Model giao dịch 86 lần → phí 16.3M VND
+- Model giao dịch 80 lần → phí 15M VND
 - Mất cơ hội khi chuyển sang cash
 
 ##### Năm 2025 (Thị trường giảm -26%)
 
 **Kết quả**:
-- ❌ Model lỗ **-25.76%**
-- ✅ **THẮNG** Buy & Hold (+0.48% alpha)
-- ✅ Max Drawdown giảm: **-27.19%** (vs -34.48% của B&H)
-- Sharpe Ratio kém: -1.36
+- ❌ Model lỗ **-27.10%**
+- ❌ Thua nhẹ Buy & Hold (-0.86% alpha)
+- ❌ Max Drawdown: **-28.51%** (vs -34.48% của B&H)
+- Sharpe Ratio kém: -1.51
 
-**Lý do thắng Buy & Hold**:
-- Model chuyển sang cash khi dự báo giảm
-- Tránh được một phần đợt giảm mạnh
-- Giảm Max Drawdown từ 34% xuống 27%
+**Nhận xét**:
+- Model không bảo vệ vốn tốt như mong đợi
+- Phí giao dịch cao (13M VND) do trade 103 lần
 
 ### 5.3. Thảo Luận Về Win Rate Thấp
 

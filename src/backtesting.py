@@ -42,7 +42,7 @@ class BacktestingEngine:
         print(f"Phí giao dịch:   {commission_rate*100:.2f}%")
         print(f"{'='*70}\n")
     
-    def simple_long_strategy(self, predictions_df, actual_prices, threshold=0.5):
+    def simple_long_strategy(self, predictions_df, actual_prices, threshold=0.0):
         """
         Chiến lược Long-Only đơn giản
         
@@ -53,13 +53,13 @@ class BacktestingEngine:
         Tham số:
         - predictions_df: DataFrame với cột 'Predicted_Returns'
         - actual_prices: Series giá thực tế (để tính lợi nhuận thực)
-        - threshold: Ngưỡng quyết định (default 0.5 vì data đã MinMaxScale về [0,1])
+        - threshold: Ngưỡng quyết định (default 0.0 vì Log_Returns giữ nguyên gốc)
         
         Lưu ý:
         - Đây là chiến lược BẢO THỦ (không short)
         - Phù hợp với thị trường VN (không cho phép short dễ dàng)
         - Không tính đòn bẩy (leverage)
-        - threshold=0.5 vì Log_Returns đã scale: 0.5 = không tăng không giảm
+        - threshold=0 vì Log_Returns gốc: >0 = tăng, <0 = giảm
         """
         print(f"\n{'█'*70}")
         print(f"BACKTESTING: SIMPLE LONG-ONLY STRATEGY")

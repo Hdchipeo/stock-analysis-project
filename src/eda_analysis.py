@@ -46,21 +46,21 @@ def run_eda_analysis(input_file="preprocessed_data.csv", raw_data="stock_data.cs
 
     # 1. Trend Analysis (Candlestick + MA + Volume)
     print("1. Drawing Trend Analysis (Candlestick Chart)...")
-    # Lấy dữ liệu 1 năm gần nhất để vẽ cho rõ
-    df_last_year = df_raw.iloc[-252:] 
+    # Lấy toàn bộ dữ liệu để vẽ tổng quan từ 2021-2026
+    df_full = df_raw.copy()
     
     # Tạo style cho mplfinance
     mc = mpf.make_marketcolors(up='g', down='r', inherit=True)
     s = mpf.make_mpf_style(marketcolors=mc)
     
     # Vẽ biểu đồ
-    fig, axes = mpf.plot(df_last_year, type='candle', style=s,
+    fig, axes = mpf.plot(df_full, type='candle', style=s,
              mav=(30), # Moving Average 30 ngày
              volume=True, 
-             title='Trend Analysis: FPT.VN Stock Price (Last 1 Year)',
-             ylabel='Price ($)',
+             title='Trend Analysis: FPT.VN Stock Price (2021-2026)',
+             ylabel='Price (VND)',
              ylabel_lower='Volume',
-             figsize=(12, 8),
+             figsize=(14, 8),
              returnfig=True)
     fig.savefig(os.path.join(results_dir, 'trend_analysis.png'))
     plt.close(fig)
