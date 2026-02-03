@@ -7,9 +7,20 @@ import xgboost as xgb
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Bidirectional, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
+import tensorflow as tf
 import os
 import warnings
 warnings.filterwarnings('ignore')
+
+# ============================================================
+# RANDOM SEED - Đảm bảo kết quả lặp lại được (Reproducibility)
+# ============================================================
+RANDOM_SEED = 42
+
+np.random.seed(RANDOM_SEED)
+tf.random.set_seed(RANDOM_SEED)
+os.environ['TF_DETERMINISTIC_OPS'] = '1'
+os.environ['PYTHONHASHSEED'] = str(RANDOM_SEED)
 
 
 def evaluate_returns_metrics(y_true_returns, y_pred_returns, model_name):
@@ -310,6 +321,7 @@ def run_modeling(train_file="train_data.csv", test_file="test_data.csv"):
         epochs=100,
         batch_size=32,
         callbacks=[es],
+        shuffle=False,  # Đảm bảo reproducibility
         verbose=1
     )
     

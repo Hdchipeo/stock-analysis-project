@@ -156,9 +156,9 @@ def preprocess_stock_data(filename="stock_data.csv"):
     print("4. Đã chuẩn hóa dữ liệu [0, 1].")
 
     # 6. Phân chia tập dữ liệu
-    # Sử dụng 1 năm cuối làm test (khoảng 250 phiên giao dịch)
-    # Cách này thực tế hơn: train trên lịch sử, test trên dữ liệu gần nhất
-    test_size = min(250, int(len(df_scaled) * 0.2))  # Tối đa 250 phiên (1 năm) hoặc 20%
+    # Test set = 2 năm cuối (2024 + 2025) để so sánh hiệu quả theo năm
+    # Khoảng 500 phiên (250 phiên/năm)
+    test_size = min(500, int(len(df_scaled) * 0.4))  # Tối đa 500 phiên (2 năm) hoặc 40%
     split_idx = len(df_scaled) - test_size
     train_df = df_scaled.iloc[:split_idx]
     test_df = df_scaled.iloc[split_idx:]
