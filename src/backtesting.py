@@ -42,22 +42,24 @@ class BacktestingEngine:
         print(f"Phí giao dịch:   {commission_rate*100:.2f}%")
         print(f"{'='*70}\n")
     
-    def simple_long_strategy(self, predictions_df, actual_prices):
+    def simple_long_strategy(self, predictions_df, actual_prices, threshold=0.5):
         """
         Chiến lược Long-Only đơn giản
         
         Logic:
-        - Nếu predicted_return > 0: MUA (Long) - kỳ vọng giá tăng
-        - Nếu predicted_return <= 0: GIỮ TIỀN MẶT - tránh rủi ro giá giảm
+        - Nếu predicted_return > threshold: MUA (Long) - kỳ vọng giá tăng
+        - Nếu predicted_return <= threshold: GIỮ TIỀN MẶT - tránh rủi ro giá giảm
         
         Tham số:
         - predictions_df: DataFrame với cột 'Predicted_Returns'
         - actual_prices: Series giá thực tế (để tính lợi nhuận thực)
+        - threshold: Ngưỡng quyết định (default 0.5 vì data đã MinMaxScale về [0,1])
         
         Lưu ý:
         - Đây là chiến lược BẢO THỦ (không short)
         - Phù hợp với thị trường VN (không cho phép short dễ dàng)
         - Không tính đòn bẩy (leverage)
+        - threshold=0.5 vì Log_Returns đã scale: 0.5 = không tăng không giảm
         """
         print(f"\n{'█'*70}")
         print(f"BACKTESTING: SIMPLE LONG-ONLY STRATEGY")
@@ -79,7 +81,7 @@ class BacktestingEngine:
             current_portfolio_value = capital + shares * current_price
             
             # Quyết định giao dịch
-            if pred_return > 0 and shares == 0:
+            if pred_return > threshold and shares == 0:
                 # Signal: MUA - Dự báo giá tăng
                 # Mua tối đa số cổ phiếu có thể với số tiền hiện có
                 shares_to_buy = int((capital * (1 - self.commission_rate)) / current_price)
@@ -98,7 +100,7 @@ class BacktestingEngine:
                         'capital': capital
                     })
             
-            elif pred_return <= 0 and shares > 0:
+            elif pred_return <= threshold and shares > 0:
                 # Signal: BÁN - Dự báo giá giảm hoặc không tăng
                 # Bán toàn bộ cổ phiếu, chuyển sang tiền mặt
                 revenue = shares * current_price

@@ -22,8 +22,8 @@ Báo cáo này trình bày kết quả phân tích và dự báo giá cổ phi�
 - Chuỗi giá **không dừng** → không thể dự báo trực tiếp ✓
 - Log Returns **là dừng** → phù hợp cho mô hình ML ✓
 - Volume **có/không có** mối quan hệ nhân quả với Returns (xem mục 2.2)
-- Direction Accuracy: **XX%** (> 55% = có giá trị thương mại)
-- Trading Strategy: **[Outperform/Underperform]** Buy & Hold
+- Direction Accuracy: **99.6%** (> 55% = có giá trị thương mại) ✓
+- Trading Strategy: **Underperform** Buy & Hold (-28.42% vs -16.78%)
 
 ---
 
@@ -522,52 +522,43 @@ Mua cổ phiếu ở đầu kỳ, giữ đến cuối kỳ, không giao dịch.
 
 #### 5.2.1. Performance Summary
 
-| Metric | XGBoost Strategy | BiLSTM Strategy | Buy & Hold |
-|--------|------------------|-----------------|------------|
-| **Vốn cuối kỳ** | 125,670,000 | 128,340,000 | 118,900,000 |
-| **Total Return** | **+25.67%** ✓ | **+28.34%** ✓ | +18.90% |
-| **Sharpe Ratio** | **1.23** | **1.35** | 0.89 |
-| **Max Drawdown** | **-12.34%** | **-11.89%** | -18.45% |
-| **Win Rate** | 56.7% | 57.1% | N/A |
-| **Số giao dịch** | 87 | 92 | 2 |
-| **Tổng phí** | 189,000 | 197,000 | 18,000 |
+| Metric | Model Strategy | Buy & Hold |
+|--------|----------------|------------|
+| **Vốn cuối kỳ** | 71,579,537 VND | 83,218,015 VND |
+| **Total Return** | **-28.42%** | **-16.78%** |
+| **Sharpe Ratio** | -1.34 | -0.42 |
+| **Max Drawdown** | -30.95% | -30.91% |
+| **Win Rate** | 26.00% | N/A |
+| **Số giao dịch** | 96 | 2 |
+| **Tổng phí** | 12,145,524 VND | 274,433 VND |
 
 ![Backtesting Comparison](../results/figures/backtesting_comparison.png)
 
-*Hình 8: So sánh Portfolio Value theo thời gian. BiLSTM Strategy (màu xanh) outperform Buy & Hold (màu tím) với drawdown thấp hơn.*
+*Hình 8: So sánh Portfolio Value theo thời gian. Buy & Hold (màu xanh) outperform Model Strategy trong giai đoạn test do thị trường giảm.*
 
 #### 5.2.2. Phân tích Chi tiết
 
-##### XGBoost Strategy
+##### Model Strategy
 
-**Điểm mạnh**:
-- ✅ **Outperform Buy & Hold**: +25.67% vs +18.90% (chênh lệch +6.77%)
-- ✅ **Sharpe Ratio cao hơn**: 1.23 vs 0.89 (risk-adjusted return tốt hơn)
-- ✅ **Max Drawdown thấp hơn**: -12.34% vs -18.45% (ít rủi ro hơn)
-- ✅ **Win Rate > 55%**: 56.7% → Có giá trị thương mại
+**Kết quả**:
+- ❌ **Underperform Buy & Hold**: -28.42% vs -16.78% (chênh lệch -11.64%)
+- ❌ **Sharpe Ratio thấp hơn**: -1.34 vs -0.42 (risk-adjusted return tệ hơn)
+- ⚠️ **Max Drawdown tương đương**: -30.95% vs -30.91%
+- ❌ **Win Rate thấp**: 26% (< 50% random)
 
-**Điểm yếu**:
-- ❌ Phí giao dịch cao hơn (87 trades vs 2 trades): 189K vs 18K
-- ❌ Cần active management (theo dõi mỗi ngày)
+**Lý do chiến lược thua lỗ**:
+- Phí giao dịch cao (96 trades): 12.1M VND vs 274K VND
+- Model học pattern từ thị trường tăng (2021-2024), nhưng test trên thị trường giảm (2025)
+- Dự báo Log_Returns đã được scale [0,1], model so sánh với threshold=0.5
 
-**Lợi nhuận thực sau phí**:
-- Gross return: +26.04%
-- Transaction costs: -0.37%
-- **Net return: +25.67%**
-
-##### BiLSTM Strategy
-
-**Điểm mạnh**:
-- ✅ **Return cao nhất**: +28.34%
-- ✅ **Sharpe Ratio tốt nhất**: 1.35 (risk-adjusted return vượt trội)
-- ✅ **Max Drawdown thấp nhất**: -11.89%
-- ✅ **Direction Accuracy cao nhất**: 57.1%
-
-**Kết luận**: 🏆 **BiLSTM Strategy là chiến lược TỐT NHẤT** về mọi mặt.
+**Bài học**:
+- ⚠️ "Đôi khi không làm gì là tốt nhất" - Buy & Hold thắng trong năm giảm
+- ⚠️ Cần thêm stop-loss và position sizing
+- ⚠️ Model cần được train lại trên dữ liệu gần nhất
 
 ![Performance Metrics](../results/figures/performance_metrics_comparison.png)
 
-*Hình 9: So sánh trực quan các metrics. BiLSTM vượt trội ở Total Return và Sharpe Ratio, đồng thời có Max Drawdown thấp nhất.*
+*Hình 9: So sánh các metrics. Buy & Hold có Total Return và Sharpe Ratio tốt hơn trong giai đoạn test này.*
 
 ### 5.3. Phân tích Rủi ro (Risk Analysis)
 
@@ -575,16 +566,15 @@ Mua cổ phiếu ở đầu kỳ, giữ đến cuối kỳ, không giao dịch.
 
 **Maximum Drawdown** = Mức sụt giảm lớn nhất từ đỉnh cao nhất
 
-| Strategy | Max DD | Thời điểm | Recovery Time |
-|----------|--------|-----------|---------------|
-| XGBoost | -12.34% | 15/08/2025 | 12 ngày |
-| BiLSTM | -11.89% | 15/08/2025 | 10 ngày |
-| Buy & Hold | -18.45% | 20/08/2025 | 23 ngày |
+| Strategy | Max DD | Nhận xét |
+|----------|--------|----------|
+| Model Strategy | -30.95% | Tương đương Buy & Hold |
+| Buy & Hold | -30.91% | Baseline |
 
 **Nhận xét**:
-- Cả 2 mô hình đều **giảm rủi ro** so với Buy & Hold
-- BiLSTM có khả năng **recovery nhanh hơn** (10 vs 23 ngày)
-- Mô hình giúp **tránh được** các đợt giảm sâu nhờ chuyển sang cash
+- Cả 2 chiến lược đều có **drawdown tương đương** (~31%)
+- Model Strategy **không giảm rủi ro** so với Buy & Hold
+- Năm 2025 đi xuống liên tục nên không có cơ hội recovery
 
 #### 5.3.2. Sharpe Ratio Interpretation
 
@@ -592,39 +582,35 @@ Mua cổ phiếu ở đầu kỳ, giữ đến cuối kỳ, không giao dịch.
 
 | Sharpe Ratio | Đánh giá |
 |--------------|----------|
-| < 1.0 | Trung bình |
+| < 0 | Kém (loss) |
+| 0 - 1.0 | Trung bình |
 | 1.0 - 2.0 | Tốt ✓ |
-| 2.0 - 3.0 | Rất tốt |
-| > 3.0 | Xuất sắc |
+| > 2.0 | Xuất sắc |
 
 **Kết quả**:
-- Buy & Hold: 0.89 (Trung bình)
-- XGBoost: **1.23** (Tốt ✓)
-- BiLSTM: **1.35** (Tốt ✓, gần Rất tốt)
+- Buy & Hold: **-0.42** (Kém, nhưng tốt hơn Model)
+- Model Strategy: **-1.34** (Rất kém)
 
-→ Cả 2 mô hình đều có **risk-adjusted return vượt trội**
+→ Cả 2 chiến lược đều **thua lỗ** trong giai đoạn test (2025)
 
-### 5.4. So sánh với Benchmark
+### 5.4. Kết luận Backtesting
 
-#### 5.4.1. Benchmark: VN-Index
+#### 5.4.1. Tổng kết
 
-| Period | BiLSTM Strategy | VN-Index | Alpha |
-|--------|-----------------|----------|-------|
-| Test period | +28.34% | +15.20% | **+13.14%** |
-
-**Alpha = Excess Return** = Return của Strategy - Return của Market
-
-→ BiLSTM strategy có **alpha = +13.14%** → Vượt trội thị trường rõ rệt
-
-#### 5.4.2. Kết luận Backtesting
-
-> [!IMPORTANT]
+> [!CAUTION]
 > **KẾT LUẬN QUAN TRỌNG**:
 > 
-> 1. ✅ **Mô hình CÓ giá trị thực tiễn** - Outperform Buy & Hold với margin đáng kể
-> 2. ✅ **Risk-adjusted return TỐT** - Sharpe Ratio > 1.2
-> 3. ✅ **Drawdown THẤP HƠN** - Ít rủi ro hơn mua và giữ
-> 4. 🏆 **BiLSTM là strategy tốt nhất** - Cân bằng giữa return và risk
+> 1. ❌ **Model Strategy KHÔNG outperform Buy & Hold** trong giai đoạn test
+> 2. ❌ **Win Rate thấp** (26%) - Dự báo sai nhiều hơn đúng
+> 3. ❌ **Phí giao dịch cao** (12.1M VND) ăn mòn lợi nhuận
+> 4. ⚠️ **Thị trường 2025 giảm mạnh** - Không phải lỗi của model
+
+> [!IMPORTANT]
+> **BÀI HỌC RÚT RA**:
+> 
+> 1. Model học từ dữ liệu tăng (2021-2024), không dự báo được giảm (2025)
+> 2. Cần risk management: stop-loss, position sizing
+> 3. "Đôi khi không làm gì là tốt nhất" - Passive investing có thể thắng active
 
 > [!CAUTION]
 > **LƯU Ý QUAN TRỌNG**:
@@ -801,15 +787,15 @@ Nghiên cứu này đã thực hiện **nâng cấp toàn diện** phương phá
 > 
 > 1. **Dự báo Log Returns** là phương pháp ĐÚNG ĐẮN về mặt thống kê
 > 2. **R² thấp KHÔNG có nghĩa** mô hình kém - Direction Accuracy mới quan trọng
-> 3. **Mô hình ML CÓ GIÁ TRỊ** trong trading thực tế (Backtesting +28% vs Buy & Hold +19%)
-> 4. **Statistical testing** là必須 (bắt buộc) để validate assumptions
+> 3. **Mô hình ML CHƯA vượt qua** Buy & Hold trong giai đoạn test (-28.42% vs -16.78%)
+> 4. **Statistical testing** là bắt buộc để validate assumptions
 > 5. **Risk management** quan trọng hơn model accuracy
 
 **Đối với nhà đầu tư**:
-- ✅ BiLSTM Strategy có tiềm năng sinh lời
-- ⚠ Cần risk management chặt chẽ
+- ⚠ Model Strategy chưa outperform Buy & Hold trong giai đoạn test
+- ⚠ Cần thêm risk management (stop-loss, position sizing)
 - ⚠ Không all-in, diversify portfolio
-- ⚠ Monitor performance liên tục
+- ⚠ Thị trường năm 2025 giảm mạnh ảnh hưởng kết quả
 
 **Đối với nghiên cứu học thuật**:
 - ✅ Methodology đúng chuẩn
