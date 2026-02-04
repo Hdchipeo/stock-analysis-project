@@ -118,15 +118,15 @@ Thay vì chỉ nhìn R², ta cần xem:
 ##### Test 1: Chuỗi Giá Close
 
 ```
-ADF Statistic:    -1.2345
-P-value:          0.6543
+ADF Statistic:    -1.066506
+P-value:          0.728242
 Critical Values:
-  1%:   -3.4312
-  5%:   -2.8621
-  10%:  -2.5671
+  1%:   -3.4356
+  5%:   -2.8639
+  10%:  -2.5680
 ```
 
-**Kết luận**: ✗ Chuỗi giá Close **KHÔNG dừng** (p-value = 0.6543 > 0.05)
+**Kết luận**: ✗ Chuỗi giá Close **KHÔNG dừng** (p-value = 0.7282 > 0.05)
 
 **Ý nghĩa**:
 - Mean và variance thay đổi theo thời gian
@@ -140,12 +140,12 @@ Critical Values:
 ##### Test 2: Log Returns
 
 ```
-ADF Statistic:    -35.6789
-P-value:          0.0000
+ADF Statistic:    -26.909438
+P-value:          0.000000
 Critical Values:
-  1%:   -3.4312
-  5%:   -2.8621
-  10%:  -2.5671
+  1%:   -3.4356
+  5%:   -2.8639
+  10%:  -2.5680
 ```
 
 **Kết luận**: ✓ Chuỗi Log Returns **là dừng** (p-value < 0.0001)
