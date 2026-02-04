@@ -505,21 +505,94 @@ def run_all_statistical_tests():
     adf_close = tester.adf_test(df['Close'], name="Close Price")
     adf_returns = tester.adf_test(df['Log_Returns'], name="Log Returns")
     
-    # 2. Granger Causality Test
+    # 2. Granger Causality Tests - Kiểm tra nhiều cặp features
     print("\n" + "█"*80)
     print("PHẦN 2: KIỂM ĐỊNH NHÂN QUẢ GRANGER (CAUSALITY TEST)")
     print("█"*80)
     
-    # Tạo Volume_Change nếu chưa có
+    # Tạo các features nếu chưa có
     if 'Volume_Change' not in df.columns:
         df['Volume_Change'] = df['Volume'].pct_change()
     
-    gc_result = tester.granger_causality_test(
+    # Dictionary lưu kết quả tất cả Granger tests
+    granger_results = {}
+    
+    # Test 1: Volume_Change → Log_Returns
+    print("\n--- Test 1: Volume_Change → Log_Returns ---")
+    gc_volume = tester.granger_causality_test(
         df, 
         target_col='Log_Returns', 
         cause_col='Volume_Change',
         max_lag=5
     )
+    granger_results['Volume_Change'] = gc_volume
+    
+    # Test 2: RSI_14 → Log_Returns
+    if 'RSI_14' in df.columns:
+        print("\n--- Test 2: RSI_14 → Log_Returns ---")
+        gc_rsi = tester.granger_causality_test(
+            df, 
+            target_col='Log_Returns', 
+            cause_col='RSI_14',
+            max_lag=5
+        )
+        granger_results['RSI_14'] = gc_rsi
+    
+    # Test 3: Volatility_30 → Log_Returns
+    if 'Volatility_30' in df.columns:
+        print("\n--- Test 3: Volatility_30 → Log_Returns ---")
+        gc_volatility = tester.granger_causality_test(
+            df, 
+            target_col='Log_Returns', 
+            cause_col='Volatility_30',
+            max_lag=5
+        )
+        granger_results['Volatility_30'] = gc_volatility
+    
+    # Test 4: MACD → Log_Returns
+    if 'MACD_12_26_9' in df.columns:
+        print("\n--- Test 4: MACD_12_26_9 → Log_Returns ---")
+        gc_macd = tester.granger_causality_test(
+            df, 
+            target_col='Log_Returns', 
+            cause_col='MACD_12_26_9',
+            max_lag=5
+        )
+        granger_results['MACD_12_26_9'] = gc_macd
+    
+    # Tổng hợp kết quả Granger Causality
+    print("\n" + "="*80)
+    print(" " * 20 + "TỔNG HỢP KẾT QUẢ GRANGER CAUSALITY")
+    print("="*80)
+    print(f"\n{'Feature':<20} {'Có nhân quả?':<15} {'Significant Lags':<20} {'Đề xuất':<30}")
+    print("-" * 85)
+    
+    features_to_keep = []
+    features_to_remove = []
+    
+    for feature_name, result in granger_results.items():
+        if result:
+            significant_lags = [r['lag'] for r in result if r['has_causality']]
+            has_causality = len(significant_lags) > 0
+            
+            if has_causality:
+                status = "✓ CÓ"
+                suggestion = f"GIỮ LẠI (lag {significant_lags})"
+                features_to_keep.append(feature_name)
+            else:
+                status = "✗ KHÔNG"
+                suggestion = "XEM XÉT LOẠI BỎ"
+                features_to_remove.append(feature_name)
+            
+            print(f"{feature_name:<20} {status:<15} {str(significant_lags):<20} {suggestion:<30}")
+    
+    print("-" * 85)
+    print(f"\n📊 ĐỀ XUẤT FEATURE SELECTION:")
+    if features_to_keep:
+        print(f"   ✓ Features NÊN GIỮ: {features_to_keep}")
+    if features_to_remove:
+        print(f"   ⚠ Features CÂN NHẮC LOẠI: {features_to_remove}")
+    print()
     
     # 3. ACF/PACF Analysis
     print("\n" + "█"*80)
@@ -535,10 +608,18 @@ def run_all_statistical_tests():
     print("\nKết quả tóm tắt:")
     print(f"  1. Close Price: {'Dừng ✓' if adf_close['is_stationary'] else 'KHÔNG dừng ✗'}")
     print(f"  2. Log Returns: {'Dừng ✓' if adf_returns['is_stationary'] else 'KHÔNG dừng ✗'}")
-    if gc_result:
-        has_causality = any(r['has_causality'] for r in gc_result)
-        print(f"  3. Volume → Returns: {'Có nhân quả ✓' if has_causality else 'KHÔNG có nhân quả ✗'}")
+    
+    # Hiển thị Granger results cho từng feature
+    print(f"  3. Granger Causality Tests:")
+    for feature_name, result in granger_results.items():
+        if result:
+            has_causality = any(r['has_causality'] for r in result)
+            status = 'Có nhân quả ✓' if has_causality else 'KHÔNG có nhân quả ✗'
+            print(f"     - {feature_name} → Returns: {status}")
+    
     print(f"  4. Optimal lags: {acf_result['optimal_lags']}")
+    print(f"  5. Features nên giữ: {features_to_keep if features_to_keep else 'Không có'}")
+    print(f"  6. Features cân nhắc loại: {features_to_remove if features_to_remove else 'Không có'}")
     print()
 
 

@@ -101,8 +101,18 @@ def preprocess_stock_data(filename="stock_data.csv"):
     print("   → Đã tạo Technical Indicators (RSI, MACD, SMA)")
     
     # === D. Volume-based Features ===
+    # ⚠️ WARNING: Granger Causality Test (2026-02-04) cho thấy Volume_Change
+    # KHÔNG có mối quan hệ nhân quả với Log_Returns (tất cả p-value > 0.05).
+    # Các features này được giữ lại để:
+    # 1. Backward compatibility với các mô hình đã train
+    # 2. Có thể hữu ích như confirmation signal (không phải leading indicator)
+    # 3. Cho phép so sánh model có/không có Volume features
+    # 
+    # TODO: Xem xét loại bỏ trong phiên bản tiếp theo nếu không cải thiện model
+    
     # D1. Volume Change - % thay đổi khối lượng giao dịch
     # Mục đích: Phát hiện sự thay đổi thanh khoản
+    # ⚠️ Granger test: p-value > 0.05 - KHÔNG có nhân quả
     df_clean['Volume_Change'] = df_clean['Volume'].pct_change()
     
     # D2. Volume Shock - Phát hiện khối lượng bất thường
@@ -119,6 +129,7 @@ def preprocess_stock_data(filename="stock_data.csv"):
     # Window = 30 ngày (volatility trong 1 tháng)
     df_clean['Volatility_30'] = df_clean['Log_Returns'].rolling(window=30).std()
     print("   → Đã tạo Volume Features (Volume_Change, Volume_Shock, Volatility)")
+    print("   ⚠️ LƯU Ý: Volume_Change không có Granger causality với Returns")
     
     # === E. Lag Features ===
     # Sử dụng giá trị quá khứ của Log_Returns làm features
@@ -128,6 +139,7 @@ def preprocess_stock_data(filename="stock_data.csv"):
         df_clean[f'Returns_Lag_{i}'] = df_clean['Log_Returns'].shift(i)
     
     # Lag features cho Volume_Change (phát hiện xu hướng volume)
+    # ⚠️ WARNING: Granger test không tìm thấy nhân quả - cân nhắc loại bỏ
     for i in range(1, 3):
         df_clean[f'Volume_Change_Lag_{i}'] = df_clean['Volume_Change'].shift(i)
     

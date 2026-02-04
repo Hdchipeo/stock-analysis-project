@@ -189,11 +189,11 @@ Granger Causality Test: Volume_Change → Log_Returns
 
 | Lag | F-statistic | P-value | Kết luận |
 |-----|-------------|---------|----------|
-| 1   | 2.456       | 0.1234  | ✗ Không có nhân quả |
-| 2   | 3.789       | 0.0234  | ✓ Có nhân quả |
-| 3   | 1.234       | 0.2967  | ✗ Không có nhân quả |
-| 4   | 4.123       | 0.0178  | ✓ Có nhân quả |
-| 5   | 2.001       | 0.1356  | ✗ Không có nhân quả |
+| 1   | 0.3707      | 0.5427  | ✗ Không có nhân quả |
+| 2   | 0.2348      | 0.7907  | ✗ Không có nhân quả |
+| 3   | 2.6118      | 0.0500  | ✗ Không có nhân quả (borderline) |
+| 4   | 2.1299      | 0.0750  | ✗ Không có nhân quả |
+| 5   | 1.7958      | 0.1108  | ✗ Không có nhân quả |
 
 ![Granger Causality](../results/figures/granger_causality_volume_change_log_returns.png)
 
@@ -202,16 +202,20 @@ Granger Causality Test: Volume_Change → Log_Returns
 #### 2.2.4. Phân tích Kết quả
 
 📊 **NHẬN XÉT**:
-- Volume_Change **CÓ khả năng** dự báo Log_Returns tại lag 2 và lag 4
-- Ý nghĩa: Khối lượng giao dịch của **2-4 ngày trước** có ảnh hưởng đến biến động giá hôm nay
+- **KHÔNG tìm thấy bằng chứng thống kê** cho mối quan hệ nhân quả giữa Volume_Change và Log_Returns
+- Tất cả các lag đều có p-value > 0.05 (ngoại trừ lag 3 là borderline p = 0.05)
+- Ý nghĩa: Khối lượng giao dịch **KHÔNG** có khả năng dự báo biến động giá trong trường hợp FPT
 
 **Implikation cho Feature Engineering**:
-- ✅ **NÊN** đưa `Volume_Change_Lag_2` và `Volume_Change_Lag_4` vào mô hình
-- ⚠ Volume hiện tại (lag 1) không có ý nghĩa thống kê
-- 💡 Có thể thêm interaction terms: `Volume_Change_Lag_2 * Returns_Lag_1`
+- ⚠️ **CÂN NHẮC** việc giữ lại `Volume_Change` và các lag features của nó
+- 💡 Volume có thể vẫn hữu ích như **confirmation signal** nhưng không phải leading indicator
+- 💡 Nên tập trung vào các features khác như RSI, Volatility có thể có ý nghĩa hơn
 
-> [!TIP]
-> Trong trường hợp cụ thể của FPT, dữ liệu cho thấy **Volume có ý nghĩa** nhưng **không phải là leading indicator chính**. Điều này phù hợp với đặc điểm của cổ phiếu blue-chip có thanh khoản ổn định.
+> [!WARNING]
+> Trong trường hợp cụ thể của FPT, dữ liệu cho thấy **Volume KHÔNG có mối quan hệ nhân quả** với Returns. Điều này có thể do:
+> 1. FPT là cổ phiếu blue-chip với thanh khoản ổn định
+> 2. Giá đã phản ánh thông tin từ volume ngay lập tức (market efficiency)
+> 3. Cần kiểm tra thêm các features khác để tìm leading indicators tốt hơn
 
 ---
 
