@@ -144,20 +144,29 @@ def run_modeling(train_file="train_data.csv", test_file="test_data.csv"):
     print(f"   Train: {len(train_df)} samples")
     print(f"   Test:  {len(test_df)} samples\n")
 
-    # === THAY ĐỔI QUAN TRỌNG: Target là Log_Returns ===
-    target = 'Log_Returns'
+    # === THAY ĐỔI QUAN TRỌNG: Target là Log_Returns của NGÀY MAI (Next Day Prediction) ===
+    # Fix Data Leakage: Không dùng features ngày t để dự báo returns ngày t
+    # Mà dùng features ngày t để dự báo returns ngày t+1
     
-    # Features: Loại bỏ các cột không dùng
+    # Tạo target Next Day
+    train_df['Target_Next_Day'] = train_df['Log_Returns'].shift(-1)
+    test_df['Target_Next_Day'] = test_df['Log_Returns'].shift(-1)
+    
+    # Drop dòng cuối cùng (NaN target)
+    train_df = train_df.dropna()
+    test_df = test_df.dropna()
+    
+    target = 'Target_Next_Day'
+    
+    # Features: Loại bỏ các cột target và raw price
     exclude_cols = [
-        'Log_Returns',  # Target
-        'Close',  # Giá tuyệt đối (không dùng nữa)
-        'Outlier',  # Flag
-        'Price_Direction',  # Target cho classification (dùng riêng)
-        'Open', 'High', 'Low', 'Volume'  # Raw values (đã có derived features)
+        'Log_Returns', 'Target_Next_Day',
+        'Close', 'Outlier', 'Price_Direction',
+        'Open', 'High', 'Low', 'Volume', 'Log_Volume'
     ]
     features = [c for c in train_df.columns if c not in exclude_cols]
     
-    print(f"🎯 Target: {target}")
+    print(f"🎯 Target: {target} (Log Returns của ngày mai)")
     print(f"📊 Features ({len(features)}): {features[:5]}... (showing first 5)\n")
     
     X_train = train_df[features]

@@ -311,34 +311,32 @@ Ba mô hình được triển khai để dự báo Log Returns:
 
 ### 3.2. So sánh Hiệu suất Mô hình
 
-#### 3.2.1. Metrics Summary
+#### 3.2.1. Metrics Summary (Sau khi Fix Data Leakage)
 
 | Mô hình | RMSE | MAE | R² | Direction Accuracy |
 |---------|------|-----|----|--------------------|
-| **Linear Regression** | 0.0234 | 0.0178 | 0.0456 | 52.3% |
-| **XGBoost** | 0.0221 | 0.0165 | 0.0789 | 56.7% ✓ |
-| **BiLSTM** | 0.0218 | 0.0162 | 0.0823 | 57.1% ✓ |
+| **Linear Regression** | 0.0203 | 0.0147 | -0.0218 | 45.8% |
+| **XGBoost** | 0.0210 | 0.0153 | -0.0908 | 50.2% ~ |
+| **BiLSTM** | 0.0210 | 0.0153 | -0.0667 | 44.4% |
 
-> [!NOTE]
-> **Giải thích R² thấp**: R² = 0.08 nghĩa là mô hình giải thích được 8% variance của Log Returns. Đây là con số **BÌN THƯỜNG** và **HỢP LÝ** với dữ liệu tài chính do tính ngẫu nhiên cao của thị trường.
+> [!WARNING]
+> **Thay đổi quan trọng**: Kết quả trước đây (Accuracy > 57%) có thể đã bị ảnh hưởng bởi **Look-Ahead Bias** (sử dụng thông tin tương lai/hiện tại để dự báo hiện tại). Sau khi sửa lỗi này (Predict Next Day - t dự báo t+1), hiệu suất đã phản ánh đúng thực tế khắc nghiệt của việc dự báo Log Returns theo ngày.
 
 #### 3.2.2. Phân tích Direction Accuracy
 
-**Direction Accuracy** là metric **quan trọng nhất** cho trading:
+**Direction Accuracy** thực tế cho thấy:
 
-- **Linear Regression: 52.3%** → Hơi tốt hơn random (50%), **chưa đủ** để trading
-- **XGBoost: 56.7%** → **Có giá trị thương mại** ✓
-- **BiLSTM: 57.1%** → **Tốt nhất**, có tiềm năng profitable trading ✓
+- **XGBoost: 50.2%** → Ngang ngửa với ngẫu nhiên (Random Walk Theory).
+- **Linear Regression & BiLSTM**: Kém hơn ngẫu nhiên (< 50%).
+- **Kết luận**: Với bộ dữ liệu và features hiện tại (Technical + Volume), việc dự báo chính xác chiều hướng giá của ngày mai là **CỰC KỲ KHÓ**.
 
 **Ý nghĩa thực tiễn**:
-- Với Direction Accuracy = 57%, nếu trading 100 lần:
-  - **57 lần đúng hướng** (profit)
-  - **43 lần sai hướng** (loss)
-  - Có thể sinh lời nếu risk management tốt
+- Chiến lược trading dựa thuần túy vào model này sẽ **RỦI RO CAO**.
+- Cần bổ sung thêm các nguồn dữ liệu khác (Sentiment, Macro, Foreign Flow) mới có hy vọng cải thiện trên 55%.
 
 ![Model Comparison](../results/figures/model_comparison_returns.png)
 
-*Hình 5: So sánh Actual vs Predicted Returns cho 3 mô hình trong 100 ngày cuối. XGBoost và BiLSTM bám sát actual returns tốt hơn Linear Regression.*
+*Hình 5: So sánh Actual vs Predicted Returns. Các đường dự báo (nét đứt) dao động với biên độ nhỏ hơn nhiều so với biến động thực tế, cho thấy model có xu hướng "an toàn" (dự đoán gần mean).*
 
 ---
 
@@ -352,34 +350,34 @@ Ba mô hình được triển khai để dự báo Log Returns:
 
 #### 3.3.2. Top Features và Ý nghĩa
 
+#### 3.3.2. Top Features và Ý nghĩa
+
 | Rank | Feature | F Score | Ý nghĩa Tài chính |
 |------|---------|---------|-------------------|
-| 1 | Returns_Lag_1 | 1,234 | **Momentum ngắn hạn**: Returns hôm qua ảnh hưởng mạnh nhất |
-| 2 | Volatility_30 | 987 | **Rủi ro**: Thị trường biến động cao → khó dự đoán |
-| 3 | RSI_14 | 765 | **Overbought/Oversold**: Chỉ báo đảo chiều |
-| 4 | Returns_Lag_2 | 654 | **Pattern 2 ngày**: Mean reversion |
-| 5 | Volume_Change_Lag_2 | 543 | **Volume confirms price**: Xác nhận Granger test |
+| 1 | RSI_14 | 2545 | **Technical**: Chỉ báo dao động (Overbought/Oversold) |
+| 2 | MACD_12_26_9 | 2093 | **Trend**: Xu hướng trung hạn |
+| 3 | Volatility_30 | 1691 | **Risk**: Rủi ro biến động giá |
+| 4 | Returns_Lag_1 | 1680 | **Momentum**: Quán tính giá ngày hôm qua |
+| 5 | Volume_Change | 1641 | **Volume**: Biến động thanh khoản (dù Granger test weak) |
 
 #### 3.3.3. Nhận xét về Feature Importance
 
 📊 **PHÂN TÍCH**:
 
-1. **Lag Features thống trị** (Returns_Lag_1, Returns_Lag_2):
-   - Phù hợp với lý thuyết: Momentum và mean reversion
-   - Thị trường VN có tính hiệu quả yếu → quá khứ gần có ảnh hưởng
+1. **Chỉ báo Kỹ thuật (RSI, MACD) thống trị**:
+   - Model dựa chủ yếu vào các tín hiệu quá mua/quá bán và xu hướng để dự đoán.
+   - Điều này cho thấy thị trường có phản ứng với Technical Analysis.
 
-2. **Volatility_30 quan trọng**:
-   - Periods of high volatility → khó dự báo hơn
-   - Cần điều chỉnh chiến lược trading theo volatility regime
+2. **Volume features vẫn hữu dụng**:
+   - Mặc dù Granger test cho `Volume_Change` không significant (linear), nhưng XGBoost vẫn dùng nó (non-linear).
+   - `Volume_Diff` (feature mới) có thể nằm ở rank thấp hơn hoặc bị lấn át bởi các indicators mạnh khác.
 
-3. **RSI_14 hữu ích**:
-   - Technical indicator CÓ giá trị trong trường hợp FPT
-   - RSI > 70 (overbought) → có thể đảo chiều xuống
-   - RSI < 30 (oversold) → có thể đảo chiều lên
+3. **Returns Lag**:
+   - Vẫn quan trọng nhưng xếp sau Technical Indicators.
 
-4. **Volume_Change_Lag_2 confirm Granger test**:
-   - Khớp với kết quả Granger causality (lag 2 significant)
-   - Volume của 2 ngày trước ảnh hưởng đến returns hôm nay
+> [!TIP]
+> **Chiến lược cải thiện**:
+> Do hiệu suất model xoay quanh 50%, các feature hiện tại chưa đủ mạnh để phân tách tín hiệu (signal) khỏi nhiễu (noise). Nên tập trung tìm feature mới hơn là tối ưu feature cũ.
 
 > [!TIP]
 > **Đề xuất Trading Strategy**: Kết hợp signal từ mô hình với RSI để tăng Direction Accuracy:

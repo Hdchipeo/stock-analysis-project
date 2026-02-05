@@ -172,11 +172,18 @@ def preprocess_stock_data(filename="stock_data.csv"):
     
     # 5. Chuẩn hóa dữ liệu (Feature Scaling)
     scaler = MinMaxScaler(feature_range=(0, 1))
-    cols_to_scale = df_features.columns.drop('Outlier')
+    
+    # EXCLUDE Log_Returns from scaling (to preserve +/- direction)
+    cols_to_exclude = ['Outlier', 'Log_Returns']
+    cols_to_scale = [c for c in df_features.columns if c not in cols_to_exclude]
+    
     df_scaled = pd.DataFrame(scaler.fit_transform(df_features[cols_to_scale]), 
                              columns=cols_to_scale, 
                              index=df_features.index)
-    df_scaled['Outlier'] = df_features['Outlier']
+    
+    # Add back excluded columns (unscaled)
+    for col in cols_to_exclude:
+        df_scaled[col] = df_features[col]
     print("4. Đã chuẩn hóa dữ liệu [0, 1].")
 
     # 6. Phân chia tập dữ liệu
