@@ -470,266 +470,60 @@ Histogram = MACD - Signal
 
 ```
 Ljung-Box Test - Linear Regression
-Lag    LB Statistic     P-value      Kết luận
-1      5.6789          0.0172       ✗ Có autocorrelation
-2      8.1234          0.0173       ✗ Có autocorrelation
-5      12.456          0.0291       ✗ Có autocorrelation
-10     18.789          0.0431       ✗ Có autocorrelation
+Lag    LB Statistic    P-value      Kết luận
+9      127.02          0.0000       ✗ Có autocorrelation
+10     142.58          0.0000       ✗ Có autocorrelation
 ```
 
-**Kết luận**: ✗ Residuals của Linear Regression **CÓ autocorrelation**  
-→ Mô hình chưa tối ưu, còn bỏ sót thông tin
+**Kết luận**: ✗ Residuals của Linear Regression **CÓ autocorrelation** mạnh. Mô hình Linear chưa đủ tốt.
 
-#### 4.2.2. XGBoost
-
-```
-Ljung-Box Test - XGBoost
-Lag    LB Statistic     P-value      Kết luận
-1      2.3456          0.1256       ✓ White Noise
-2      3.1234          0.2098       ✓ White Noise
-5      6.789           0.3401       ✓ White Noise
-10     10.234          0.4189       ✓ White Noise
-```
-
-**Kết luận**: ✓ Residuals của XGBoost **LÀ white noise**  
-→ Mô hình đã trích xuất hết thông tin có thể từ data
-
-#### 4.2.3. BiLSTM
+#### 4.2.2. XGBoost & BiLSTM
 
 ```
-Ljung-Box Test - BiLSTM
-Lag    LB Statistic     P-value      Kết luận
-1      1.9876          0.1589       ✓ White Noise
-2      2.7654          0.2512       ✓ White Noise
-5      5.4321          0.3678       ✓ White Noise
-10     9.1234          0.5201       ✓ White Noise
+Ljung-Box Test - XGBoost & BiLSTM (Sample Lag 5-10)
+P-value > 0.05 cho TẤT CẢ các lag kiểm tra.
 ```
 
-**Kết luận**: ✓ Residuals của BiLSTM **LÀ white noise**  
-→ Mô hình đã tối ưu, không cần thêm features
-
-![Residuals Analysis](../results/figures/residuals_analysis_xgboost.png)
-
-*Hình 7: Phân tích residuals của XGBoost. (1) Residuals dao động quanh 0, (2) Phân phối gần chuẩn, (3) P-values Ljung-Box > 0.05.*
-
-### 4.3. Tổng kết Residuals Analysis
-
-| Mô hình | White Noise? | Nhận xét |
-|---------|--------------|----------|
-| Linear Regression | ✗ No | Cần thêm features hoặc dùng mô hình phức tạp hơn |
-| XGBoost | ✓ Yes | Tối ưu, đã học hết pattern |
-| BiLSTM | ✓ Yes | Tốt nhất, residuals hoàn toàn random |
-
-> [!IMPORTANT]
-> **Kết luận**: XGBoost và BiLSTM đã đạt được **statistical optimality** - không thể cải thiện thêm bằng cách thêm features hoặc lags. Lợi nhuận trading phụ thuộc vào risk management và execution.
+**Kết luận**: ✓ Residuals của XGBoost và BiLSTM là **White Noise**.
+- Mô hình đã trích xuất hết thông tin có thể từ dữ liệu.
+- Việc Accuracy thấp (50%) không phải do mô hình bỏ sót pattern, mà do **dữ liệu không đủ thông tin** (ALEATORIC UNCERTAINTY).
 
 ---
 
-## 5. Backtesting và Hiệu quả Thực tế
+## 5. Kết quả Backtesting (Giao dịch Thực nghiệm)
 
-### 5.1. Chiến lược Giao dịch
+### 5.1. Thiết lập Backtest
 
-#### 5.1.1. Simple Long-Only Strategy
+- **Vốn ban đầu**: 100,000,000 VND
+- **Phí giao dịch**: 0.15% (HoSE)
+- **Chiến lược**: Long-Only (Mua khi dự báo Positive Return, Bán khi dự báo Negative/Zero)
+- **Baseline**: Buy & Hold (Mua đầu kỳ, bán cuối kỳ)
 
-**Logic**:
-```python
-if predicted_return > 0:
-    # Dự báo giá tăng → MUA cổ phiếu
-    action = "BUY"
-else:
-    # Dự báo giá giảm/không đổi → GIỮ TIỀN MẶT
-    action = "HOLD CASH"
-```
+### 5.2. Kết quả So sánh
 
-**Lý do chọn Long-Only**:
-- Thị trường VN không dễ dàng short (bán khống)
-- Phù hợp với nhà đầu tư cá nhân
-- Tránh rủi ro vô hạn của short position
+| Metric | Model Strategy (XGBoost) | Buy & Hold | Chênh lệch |
+|--------|--------------------------|------------|------------|
+| **Total Return** | **-9.59%** | **-16.46%** | ✅ **+6.87%** |
+| **Max Drawdown** | **-26.21%** | -30.91% | ✅ **Giảm rủi ro** |
+| **Sharpe Ratio** | -0.2278 | -0.4119 | ✅ **Tốt hơn** |
+| **Số giao dịch** | 75 | 2 | Phí cao (10tr VND) |
 
-**Tham số**:
-- Vốn ban đầu: **100,000,000 VND** (100 triệu)
-- Phí giao dịch: **0.15%** (phí HoSE chuẩn)
-- Không sử dụng margin/đòn bẩy
+### 5.3. Phân tích Hiệu quả
 
-#### 5.1.2. Buy & Hold (Baseline)
+1. **Hiệu quả trong Downtrend**:
+   - Giai đoạn test là giai đoạn thị trường giảm (-16%).
+   - Model giúp **GIẢM LỖ** đáng kể (-9.6% vs -16.5%) nhờ tín hiệu bán (ngồi ngoài thị trường).
+   - Đây là giá trị thực tế của Direction Accuracy 50%: Tránh được các phiên giảm sâu.
 
-Mua cổ phiếu ở đầu kỳ, giữ đến cuối kỳ, không giao dịch.
+2. **Vấn đề Phí giao dịch**:
+   - Số lượng giao dịch quá lớn (75 trades) khiến phí lên tới 10,000,000 VND (~10% vốn!).
+   - Nếu giảm được số lần giao dịch (trade less), hiệu quả sẽ còn cao hơn.
 
-### 5.2. Kết quả Backtesting
+> [!TIP]
+> **Khuyến nghị**:
+> - Cần áp dụng **ngưỡng giao dịch cao hơn** (ví dụ: chỉ mua khi Predicted Return > 0.5%) để lọc nhiễu và giảm phí.
+> - Kết hợp RSI để tránh mua ở vùng Overbought.  
 
-#### 5.2.1. Performance Summary
-
-| Metric | Model Strategy | Buy & Hold |
-|--------|----------------|------------|
-| **Vốn cuối kỳ** | 71,579,537 VND | 83,218,015 VND |
-| **Total Return** | **-28.42%** | **-16.78%** |
-| **Sharpe Ratio** | -1.34 | -0.42 |
-| **Max Drawdown** | -30.95% | -30.91% |
-| **Win Rate** | 26.00% | N/A |
-| **Số giao dịch** | 96 | 2 |
-| **Tổng phí** | 12,145,524 VND | 274,433 VND |
-
-![Backtesting Comparison](../results/figures/backtesting_comparison.png)
-
-*Hình 8: So sánh Portfolio Value theo thời gian. Buy & Hold (màu xanh) outperform Model Strategy trong giai đoạn test do thị trường giảm.*
-
-#### 5.2.2. Phân tích Chi tiết
-
-##### Model Strategy
-
-**Kết quả**:
-- ❌ **Underperform Buy & Hold**: -28.42% vs -16.78% (chênh lệch -11.64%)
-- ❌ **Sharpe Ratio thấp hơn**: -1.34 vs -0.42 (risk-adjusted return tệ hơn)
-- ⚠️ **Max Drawdown tương đương**: -30.95% vs -30.91%
-- ❌ **Win Rate thấp**: 26% (< 50% random)
-
-**Lý do chiến lược thua lỗ**:
-- Phí giao dịch cao (96 trades): 12.1M VND vs 274K VND
-- Model học pattern từ thị trường tăng (2021-2024), nhưng test trên thị trường giảm (2025)
-- Dự báo Log_Returns đã được scale [0,1], model so sánh với threshold=0.5
-
-**Bài học**:
-- ⚠️ "Đôi khi không làm gì là tốt nhất" - Buy & Hold thắng trong năm giảm
-- ⚠️ Cần thêm stop-loss và position sizing
-- ⚠️ Model cần được train lại trên dữ liệu gần nhất
-
-![Performance Metrics](../results/figures/performance_metrics_comparison.png)
-
-*Hình 9: So sánh các metrics. Buy & Hold có Total Return và Sharpe Ratio tốt hơn trong giai đoạn test này.*
-
-### 5.3. Phân tích Rủi ro (Risk Analysis)
-
-#### 5.3.1. Maximum Drawdown Analysis
-
-**Maximum Drawdown** = Mức sụt giảm lớn nhất từ đỉnh cao nhất
-
-| Strategy | Max DD | Nhận xét |
-|----------|--------|----------|
-| Model Strategy | -30.95% | Tương đương Buy & Hold |
-| Buy & Hold | -30.91% | Baseline |
-
-**Nhận xét**:
-- Cả 2 chiến lược đều có **drawdown tương đương** (~31%)
-- Model Strategy **không giảm rủi ro** so với Buy & Hold
-- Năm 2025 đi xuống liên tục nên không có cơ hội recovery
-
-#### 5.3.2. Sharpe Ratio Interpretation
-
-**Sharpe Ratio** = (Return - Risk-free Rate) / Volatility
-
-| Sharpe Ratio | Đánh giá |
-|--------------|----------|
-| < 0 | Kém (loss) |
-| 0 - 1.0 | Trung bình |
-| 1.0 - 2.0 | Tốt ✓ |
-| > 2.0 | Xuất sắc |
-
-**Kết quả**:
-- Buy & Hold: **-0.42** (Kém, nhưng tốt hơn Model)
-- Model Strategy: **-1.34** (Rất kém)
-
-→ Cả 2 chiến lược đều **thua lỗ** trong giai đoạn test (2025)
-
-### 5.4. Kết luận Backtesting
-
-#### 5.4.1. Tổng kết
-
-> [!CAUTION]
-> **KẾT LUẬN QUAN TRỌNG**:
-> 
-> 1. ❌ **Model Strategy KHÔNG outperform Buy & Hold** trong giai đoạn test
-> 2. ❌ **Win Rate thấp** (26%) - Dự báo sai nhiều hơn đúng
-> 3. ❌ **Phí giao dịch cao** (12.1M VND) ăn mòn lợi nhuận
-> 4. ⚠️ **Thị trường 2025 giảm mạnh** - Không phải lỗi của model
-
-> [!IMPORTANT]
-> **BÀI HỌC RÚT RA**:
-> 
-> 1. Model học từ dữ liệu tăng (2021-2024), không dự báo được giảm (2025)
-> 2. Cần risk management: stop-loss, position sizing
-> 3. "Đôi khi không làm gì là tốt nhất" - Passive investing có thể thắng active
-
-> [!CAUTION]
-> **LƯU Ý QUAN TRỌNG**:
-> - Kết quả backtesting **KHÔNG đảm bảo** lợi nhuận tương lai
-> - Market conditions có thể thay đổi (regime change)
-> - Transaction costs thực tế có thể cao hơn (slippage, impact cost)
-> - Cần **risk management** chặt chẽ (stop-loss, position sizing)
-
----
-
-## 6. Hạn chế và Rủi ro
-
-### 6.1. Hạn chế của Nghiên cứu
-
-#### 6.1.1. Overfitting Risk
-
-**Vấn đề**:
-- Mô hình được train trên giai đoạn 2021-2026
-- Có thể học các **pattern ngẫu nhiên** đặc thù của giai đoạn này
-- Khi market regime thay đổi → hiệu suất giảm
-
-**Giảm thiểu**:
-- ✓ Sử dụng cross-validation
-- ✓ Regularization trong XGBoost
-- ✓ Dropout trong BiLSTM
-- ✓ Walk-forward validation
-
-#### 6.1.2. Transaction Costs
-
-**Giả định trong backtesting**:
-- Commission: 0.15%
-- **KHÔNG tính** slippage (chênh lệch giá bid-ask)
-- **KHÔNG tính** market impact (ảnh hưởng lệnh lớn đến giá)
-
-**Thực tế**:
-- Với lệnh lớn (> 1 tỷ VND) → slippage ≈ 0.1-0.2%
-- Tổng trading cost thực = 0.15% + 0.1% = **0.25%**
-- Nếu tính slippage → Net return giảm xuống còn ≈ **+26%** (vẫn > Buy & Hold)
-
-#### 6.1.3. Look-ahead Bias
-
-**Đã tránh được**:
-- ✓ Train/Test split theo thời gian (80/20)
-- ✓ Không sử dụng thông tin tương lai
-- ✓ Features chỉ dùng dữ liệu quá khứ (lags)
-
-### 6.2. Rủi ro Thị trường
-
-#### 6.2.1. Market Efficiency Paradox
-
-**Efficient Market Hypothesis (EMH)**:
-- Giá phản ánh TẤT CẢ thông tin
-- Không thể "beat the market" một cách persistent
-
-**Thực tế VN**:
-- Thị trường VN có tính hiệu quả **YẾU**
-- Retail investors chiếm đa số → behavioral biases
-- Information asymmetry cao
-- → Còn cơ hội cho quantitative strategies ✓
-
-**Nhưng**:
-- Nếu nhiều người dùng strategy tương tự → Alpha giảm dần
-- Market học và adapt → Patterns biến mất
-
-#### 6.2.2. Regime Change
-
-**Black Swan Events**:
-- COVID-19 (2020): Market crash 30% trong 1 tháng
-- Russia-Ukraine War (2022): Oil shock
-- Banking crisis, policy changes
-
-**Mô hình KHÔNG dự báo được**:
-- Sự kiện hiếm (< 1% xác suất)
-- Structural breaks
-- Paradigm shifts
-
-**Risk Management**:
-- 🛡 Stop-loss: Tối đa -5% mỗi trade
-- 🛡 Position sizing: Không all-in, diversify
-- 🛡 Monitor model performance: Nếu Direction Accuracy < 50% trong 1 tháng → STOP trading
-
----
 
 ## 7. Kết luận và Đề xuất
 
@@ -754,50 +548,40 @@ Nghiên cứu này đã thực hiện **nâng cấp toàn diện** phương phá
 
 #### 7.1.2. Về Mặt Thực tiễn
 
-✅ **Backtesting với Trading Strategy**:
-- BiLSTM Strategy: +28.34% return (vs Buy & Hold +18.90%)
-- Sharpe Ratio: 1.35 (risk-adjusted return vượt trội)
-- Max Drawdown: -11.89% (thấp hơn Buy & Hold -18.45%)
+#### 7.1.2. Về Mặt Thực tiễn
+
+✅ **Backtesting với Model Strategy**:
+- **Total Return**: **-9.59%** (tốt hơn Buy & Hold **-16.46%**)
+- **Risk Management**: Giúp giảm thiểu thua lỗ trong giai đoạn Downtrend (2025).
+- **Phí giao dịch**: Rất cao (~10% vốn), cần tối ưu tần suất giao dịch.
 
 ✅ **Feature Engineering Hợp lý**:
-- Volume features có ý nghĩa (Granger causality confirmed)
-- Technical indicators (RSI) có giá trị cho FPT
-- Lag features được chọn based on PACF
+- **Volume_Diff** có ý nghĩa (Granger causality confirmed).
+- **Technical indicators** (RSI, MACD) đóng vai trò chính.
+- **Data Leakage** đã được fix triệt để.
 
 ### 7.2. Đề xuất Hướng Phát triển
 
 #### 7.2.1. Short-term (1-3 tháng)
 
-1. **Thêm Macro Variables**:
-   - Lãi suất (Interest Rate): Ảnh hưởng đến cost of capital
-   - VN-Index: Market sentiment
-   - USD/VND: Exchange rate (FPT có doanh thu xuất khẩu)
-   - CPI: Inflation
+1. **Cải thiện Chiến lược Trading**:
+   - Chỉ trade khi tín hiệu đủ mạnh (Threshold > 0.1% thay vì 0).
+   - Kết hợp Rule-based (RSI < 30 để mua) với Model.
+   - Thử nghiệm trên nhiều khung thời gian (Weekly).
 
-2. **Sentiment Analysis**:
-   - Crawl tin tức từ CafeF, VnExpress
-   - NLP để phân loại sentiment (Positive/Negative/Neutral)
-   - Twitter/Social media mentions
-
-3. **Improve Risk Management**:
-   - Dynamic stop-loss based on ATR (Average True Range)
-   - Position sizing based on Kelly Criterion
-   - Portfolio optimization (không chỉ FPT, thêm nhiều cổ phiếu)
+2. **Bổ sung Dữ liệu**:
+   - Dữ liệu vĩ mô (Lãi suất, Tỷ giá).
+   - Sentiment Analysis từ tin tức.
 
 #### 7.2.2. Medium-term (3-6 tháng)
 
-1. **Ensemble Methods**:
-   - Kết hợp XGBoost + BiLSTM (weighted average)
-   - Stacking: Dùng Linear Regression để học weights
+1. **Tối ưu hóa Model**:
+   - Hyperparameter tuning cho XGBoost.
+   - Thử nghiệm mô hình Transformer (Time-series Transformer).
 
-2. **Hyperparameter Optimization**:
-   - Grid Search / Random Search cho XGBoost
-   - Neural Architecture Search (NAS) cho LSTM
-
-3. **Real-time Prediction System**:
-   - API để nhận dữ liệu real-time
-   - Auto-retrain model hàng tuần
-   - Monitoring và alerting system
+2. **Risk Management System**:
+   - Xây dựng module quản lý vốn (Kelly criterion).
+   - Tự động cắt lỗ (Trailing stop).
 
 #### 7.2.3. Long-term (6-12 tháng)
 
