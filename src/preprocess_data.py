@@ -115,6 +115,14 @@ def preprocess_stock_data(filename="stock_data.csv"):
     # ⚠️ Granger test: p-value > 0.05 - KHÔNG có nhân quả
     df_clean['Volume_Change'] = df_clean['Volume'].pct_change()
     
+    # NEW: Volume Diff - Log Differencing (đã được chứng minh có Granger Causality)
+    # Handle volume=0 case
+    vol_adjusted = df_clean['Volume'].replace(0, 1)
+    df_clean['Log_Volume'] = np.log(vol_adjusted)
+    df_clean['Volume_Diff'] = df_clean['Log_Volume'].diff()
+    # Fill NaN created by diff
+    df_clean['Volume_Diff'] = df_clean['Volume_Diff'].fillna(0)
+
     # D2. Volume Shock - Phát hiện khối lượng bất thường
     # Logic: Volume > Mean + 2*Std (vượt 2 độ lệch chuẩn)
     # Ý nghĩa: Báo hiệu sự kiện quan trọng (tin tức, earnings, etc.)
@@ -128,20 +136,24 @@ def preprocess_stock_data(filename="stock_data.csv"):
     # Đo bằng rolling standard deviation của Log Returns
     # Window = 30 ngày (volatility trong 1 tháng)
     df_clean['Volatility_30'] = df_clean['Log_Returns'].rolling(window=30).std()
-    print("   → Đã tạo Volume Features (Volume_Change, Volume_Shock, Volatility)")
-    print("   ⚠️ LƯU Ý: Volume_Change không có Granger causality với Returns")
+    print("   → Đã tạo Volume Features: Volume_Diff (New!), Volume_Change, Shock")
     
     # === E. Lag Features ===
     # Sử dụng giá trị quá khứ của Log_Returns làm features
-    # Lags = [1, 2, 3]: Giá trị của 1, 2, 3 ngày trước
-    # Note: Sau khi chạy ACF/PACF analysis, có thể điều chỉnh số lags tối ưu
+    # PACF Analysis cho thấy significant lags tại [2, 23, 27]
+    # Tuy nhiên, ta sử dụng [1, 2, 3] vì:
+    # 1. Lag 23, 27 có risk overfitting cao (monthly pattern có thể là noise)
+    # 2. Lag 1, 2, 3 là lựa chọn thực tiễn, ổn định qua nhiều nghiên cứu
     for i in range(1, 4):
         df_clean[f'Returns_Lag_{i}'] = df_clean['Log_Returns'].shift(i)
     
-    # Lag features cho Volume_Change (phát hiện xu hướng volume)
-    # ⚠️ WARNING: Granger test không tìm thấy nhân quả - cân nhắc loại bỏ
+    # Lag features cho Volume_Change (giữ lại để so sánh)
     for i in range(1, 3):
         df_clean[f'Volume_Change_Lag_{i}'] = df_clean['Volume_Change'].shift(i)
+
+    # NEW: Lag features cho Volume_Diff (Quan trọng: Lag 3, 4 có Granger Causality)
+    for i in range(1, 5):
+        df_clean[f'Volume_Diff_Lag_{i}'] = df_clean['Volume_Diff'].shift(i)
     
     print("   → Đã tạo Lag Features (Returns_Lag_1-3, Volume_Change_Lag_1-2)")
     

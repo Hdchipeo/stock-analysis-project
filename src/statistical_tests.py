@@ -510,22 +510,65 @@ def run_all_statistical_tests():
     print("PHẦN 2: KIỂM ĐỊNH NHÂN QUẢ GRANGER (CAUSALITY TEST)")
     print("█"*80)
     
+    # === GIẢI THÍCH: Tại sao dùng Volume_Change thay vì Volume? ===
+    # Granger Causality Test YÊU CẦU dữ liệu phải STATIONARY (dừng)
+    # - Volume (raw): Non-stationary (có xu hướng tăng/giảm theo thời gian)
+    # - Volume_Change: Stationary (% thay đổi dao động quanh 0)
+    # - log(Volume) sau differencing: Stationary
+    # 
+    # Ta sẽ test CẢ HAI để so sánh:
+    # 1. Volume_Change (% thay đổi hàng ngày)
+    # 2. Volume_Diff (first difference của log Volume)
+    
     # Tạo các features nếu chưa có
     if 'Volume_Change' not in df.columns:
         df['Volume_Change'] = df['Volume'].pct_change()
     
+    # Tạo log(Volume) differencing để so sánh
+    # Handle Volume = 0 case (replace with 1 to avoid log(0) = -inf)
+    df_vol = df.copy()
+    if (df_vol['Volume'] <= 0).any():
+        df_vol.loc[df_vol['Volume'] <= 0, 'Volume'] = 1
+        
+    df['Log_Volume'] = np.log(df_vol['Volume'])
+    df['Volume_Diff'] = df['Log_Volume'].diff()
+    df['Volume_Diff'] = df['Volume_Diff'].replace([np.inf, -np.inf], np.nan)
+    df['Volume_Diff'] = df['Volume_Diff'].fillna(0)
+    
     # Dictionary lưu kết quả tất cả Granger tests
     granger_results = {}
     
-    # Test 1: Volume_Change → Log_Returns
-    print("\n--- Test 1: Volume_Change → Log_Returns ---")
-    gc_volume = tester.granger_causality_test(
+    # === VOLUME TESTS ===
+    print("\n" + "="*70)
+    print("NHÓM 1: VOLUME → LOG_RETURNS (So sánh các cách biến đổi Volume)")
+    print("="*70)
+    
+    # Test 1a: Volume_Change → Log_Returns
+    print("\n--- Test 1a: Volume_Change (% thay đổi) → Log_Returns ---")
+    print("    Lý do: % thay đổi khối lượng so với hôm qua")
+    gc_volume_change = tester.granger_causality_test(
         df, 
         target_col='Log_Returns', 
         cause_col='Volume_Change',
         max_lag=5
     )
-    granger_results['Volume_Change'] = gc_volume
+    granger_results['Volume_Change'] = gc_volume_change
+    
+    # Test 1b: Volume_Diff (log differencing) → Log_Returns
+    print("\n--- Test 1b: Volume_Diff (Δlog Volume) → Log_Returns ---")
+    print("    Lý do: First difference của log Volume, phổ biến trong econometrics")
+    gc_volume_diff = tester.granger_causality_test(
+        df, 
+        target_col='Log_Returns', 
+        cause_col='Volume_Diff',
+        max_lag=5
+    )
+    granger_results['Volume_Diff'] = gc_volume_diff
+    
+    # === TECHNICAL INDICATORS TESTS ===
+    print("\n" + "="*70)
+    print("NHÓM 2: TECHNICAL INDICATORS → LOG_RETURNS")
+    print("="*70)
     
     # Test 2: RSI_14 → Log_Returns
     if 'RSI_14' in df.columns:

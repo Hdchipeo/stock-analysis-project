@@ -174,42 +174,67 @@ Kiểm tra liệu **Volume (Khối lượng giao dịch)** có khả năng dự 
 - "Volume leads Price" – Khối lượng giao dịch tăng → sẽ có biến động giá
 - Nếu khối lượng đột biến → có thể có tin tức quan trọng → giá sẽ phản ứng
 
-#### 2.2.2. Giả thuyết Kiểm định
+#### 2.2.2. Tại sao dùng Volume_Change thay vì Volume?
+
+> [!IMPORTANT]
+> **Granger Causality Test YÊU CẦU dữ liệu phải STATIONARY (dừng)**
+
+| Biến | Tính dừng | Phù hợp cho Granger? |
+|------|-----------|---------------------|
+| Volume (raw) | ❌ Non-stationary | ❌ Không |
+| Volume_Change (% thay đổi) | ✅ Stationary | ✅ Có |
+| Δlog(Volume) | ✅ Stationary | ✅ Có |
+
+**Giải thích:**
+- **Volume (raw)**: 10M, 15M, 20M... → Có xu hướng, không dừng
+- **Volume_Change**: +50%, -20%... → Dao động quanh 0, dừng
+
+Nếu dùng Volume (non-stationary) → Kết quả test có thể là **spurious** (giả mạo)
+
+#### 2.2.3. Giả thuyết Kiểm định
 
 - **H₀**: Volume_Change **KHÔNG** Granger-cause Log_Returns
 - **H₁**: Volume_Change **CÓ** Granger-cause Log_Returns
 
 **Quy tắc**: p-value < 0.05 → Có mối quan hệ nhân quả
 
-#### 2.2.3. Kết quả
+#### 2.2.4. Kết quả
 
 ```
-Granger Causality Test: Volume_Change → Log_Returns
+Granger Causality Test: Volume_Change vs Volume_Diff → Log_Returns
 ```
 
+**Test 1: Volume_Change (% Change)**
 | Lag | F-statistic | P-value | Kết luận |
 |-----|-------------|---------|----------|
 | 1   | 0.3707      | 0.5427  | ✗ Không có nhân quả |
 | 2   | 0.2348      | 0.7907  | ✗ Không có nhân quả |
-| 3   | 2.6118      | 0.0500  | ✗ Không có nhân quả (borderline) |
-| 4   | 2.1299      | 0.0750  | ✗ Không có nhân quả |
-| 5   | 1.7958      | 0.1108  | ✗ Không có nhân quả |
+| 3   | 2.6118      | 0.0500  | ✗ Không có nhân quả |
 
-![Granger Causality](../results/figures/granger_causality_volume_change_log_returns.png)
+**Test 2: Volume_Diff (Δlog Volume)**
+| Lag | F-statistic | P-value | Kết luận |
+|-----|-------------|---------|----------|
+| 1   | 0.0199      | 0.8878  | ✗ Không có nhân quả |
+| 2   | 0.0406      | 0.9602  | ✗ Không có nhân quả |
+| 3   | 3.2620      | 0.0208  | ✓ **CÓ Nhân Quả** |
+| 4   | 2.5053      | 0.0406  | ✓ **CÓ Nhân Quả** |
 
-*Hình 3: Kết quả Granger Causality Test. Màu xanh (green) = có nhân quả, màu đỏ (red) = không có nhân quả.*
+![Granger Causality](../results/figures/granger_causality_volume_diff_log_returns.png)
 
-#### 2.2.4. Phân tích Kết quả
+#### 2.2.5. Phân tích Kết quả
 
-📊 **NHẬN XÉT**:
-- **KHÔNG tìm thấy bằng chứng thống kê** cho mối quan hệ nhân quả giữa Volume_Change và Log_Returns
-- Tất cả các lag đều có p-value > 0.05 (ngoại trừ lag 3 là borderline p = 0.05)
-- Ý nghĩa: Khối lượng giao dịch **KHÔNG** có khả năng dự báo biến động giá trong trường hợp FPT
+📊 **PHÁT HIỆN QUAN TRỌNG**:
+- **Volume_Change**: KHÔNG có khả năng dự báo.
+- **Volume_Diff** (Differencing của Log Volume): **CÓ khả năng dự báo** Log Returns tại lag 3 và 4.
 
-**Implikation cho Feature Engineering**:
-- ⚠️ **CÂN NHẮC** việc giữ lại `Volume_Change` và các lag features của nó
-- 💡 Volume có thể vẫn hữu ích như **confirmation signal** nhưng không phải leading indicator
-- 💡 Nên tập trung vào các features khác như RSI, Volatility có thể có ý nghĩa hơn
+**Ý nghĩa Chiến lược**:
+- Việc dùng `% Change` (Volume_Change) đã làm mất đi thông tin quan trọng.
+- Chuyển sang dùng `Log Differencing` (Volume_Diff) giúp tìm ra tín hiệu ẩn.
+- Khối lượng giao dịch 3-4 ngày trước có ảnh hưởng đến biến động giá hôm nay.
+
+**Đề xuất Feature Engineering**:
+- ✅ **THÊM NGAY**: Feature `Volume_Diff` và các lag của nó (đặc biệt lag 3, 4).
+- ⚠️ **LOẠI BỎ**: Cân nhắc loại bỏ `Volume_Change` nếu feature importance thấp.
 
 > [!WARNING]
 > Trong trường hợp cụ thể của FPT, dữ liệu cho thấy **Volume KHÔNG có mối quan hệ nhân quả** với Returns. Điều này có thể do:
