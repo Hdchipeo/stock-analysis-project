@@ -266,24 +266,34 @@ Xác định số lượng lags tối ưu cho mô hình thay vì chọn bừa b�
 
 **Phân tích**:
 - **ACF**: Decay nhanh về 0 → Chuỗi là stationary (xác nhận lại ADF Test) ✓
-- **PACF**: Significant tại lags **[1, 2, 5]**
-  - Lag 1: Tự tương quan ngắn hạn (hôm qua ảnh hưởng hôm nay)
-  - Lag 2: Pattern 2 ngày
-  - Lag 5: Pattern 1 tuần giao dịch (5 ngày)
+- **PACF**: Significant tại lags **[2, 23, 27]**
+  - **Lag 2**: Tương quan ngắn hạn (tích cực hoặc tiêu cực).
+  - **Lag 23, 27**: Tương ứng với chu kỳ khoảng 1 tháng giao dịch (22-23 ngày/tháng). Có thể phản ánh hiệu ứng monthly seasonality hoặc reporting cycles.
 
 #### 2.3.3. Đề xuất Feature Engineering
 
-Dựa trên PACF analysis:
+Dựa trên PACF analysis và thực tiễn:
 
 ```python
-# Optimal lag features
-Returns_Lag_1    # Quan trọng nhất
-Returns_Lag_2    # Quan trọng thứ 2
-Returns_Lag_5    # Weekly pattern
+# Statistical Findings (PACF)
+Significant Lags: [2, 23, 27]
+
+# Practical Selection (Feature Engineering)
+Returns_Lag_1    # Dù PACF thấp, nhưng luôn quan trọng (Momentum)
+Returns_Lag_2    # Supported by PACF
+Returns_Lag_3    # Buffer cho noise
+Volume_Diff_Lag_3, 4 # Dựa trên Granger Causality mới phát hiện
 ```
 
+> [!NOTE]
+> **Tại sao không dùng Lag 23, 27?**
+> Mặc dù PACF cho thấy Lag 23, 27 có ý nghĩa thống kê, nhưng trong thực tế trading:
+> 1. Lag quá xa (1 tháng) dễ gây **overfitting** và nhiễu (noise).
+> 2. Dữ liệu tài chính thường thay đổi regime nhanh chóng, lag gần (1-5) thường ổn định hơn.
+> 3. Tuy nhiên, có thể thử nghiệm thêm Monthly Lag nếu model hiện tại không đủ tốt.
+
 > [!IMPORTANT]
-> **Kết luận**: Thay vì dùng arbitrary lags [1, 2, 3], ta sử dụng **statistically justified** lags [1, 2, 5] dựa trên PACF.
+> **Kết luận**: Chiến lược Feature Engineering tối ưu là kết hợp **Returns Lags ngắn hạn** (1-3) để đảm bảo tính ổn định và bổ sung **Volume_Diff Lags** (3-4) vừa được kiểm chứng bởi Granger Test.
 
 ---
 
