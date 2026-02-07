@@ -126,12 +126,9 @@ elif page == "Hiệu suất Mô hình":
                     marker_color=['#2E86AB', '#A23B72', '#F18F01'][:len(metrics_df)]
                 )
             ])
-            fig.add_hline(y=55, line_dash="dash", line_color="red",
-                         annotation_text="Ngưỡng 55%")
+            fig.add_hline(y=55, line_dash="dash", line_color="red", annotation_text="Ngưỡng 55%")
             fig.update_layout(
-                title="Direction Accuracy theo Mô hình",
-                yaxis_title="Accuracy (%)",
-                height=400
+                title="Direction Accuracy theo Mô hình", yaxis_title="Accuracy (%)", height=400
             )
             st.plotly_chart(fig, use_container_width=True)
     else:
