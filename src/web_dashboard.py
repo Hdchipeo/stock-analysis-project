@@ -79,7 +79,7 @@ if page == "Tổng quan":
     with col1:
         st.subheader("🎯 Mục tiêu")
         st.markdown("""
-        - Thu thập dữ liệu cổ phiếu FPT.VN (2021-2025)
+        - Thu thập dữ liệu cổ phiếu FPT.VN (2021-2026)
         - Phân tích thống kê và EDA
         - Xây dựng mô hình dự báo Log Returns
         - Đánh giá hiệu quả qua Backtesting
