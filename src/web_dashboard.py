@@ -56,7 +56,7 @@ metrics_df, preds_df, backtest_df, test_df, figures_dir = load_data()
 # --- HEADER ---
 st.title("📈 FPT Stock Analysis Dashboard")
 st.markdown("**Đồ án Phân tích và Dự báo Cổ phiếu FPT.VN**")
-st.markdown("Giai đoạn: 01/01/2021 - 31/12/2025")
+st.markdown("Giai đoạn: 01/01/2021 - 02/2026")
 
 # --- SIDEBAR ---
 with st.sidebar:
@@ -92,14 +92,14 @@ if page == "Tổng quan":
         - **Additive**: Dễ tính tổng lợi nhuận
         """)
     
-    with col2:
-        st.subheader("📁 Dữ liệu")
-        if test_df is not None:
-            st.metric("Số phiên test", len(test_df))
-        if metrics_df is not None:
-            st.metric("Số mô hình", len(metrics_df))
-        if backtest_df is not None:
-            st.metric("Backtesting", "✅ Đã chạy")
+    # with col2:
+    #     st.subheader("📁 Dữ liệu")
+    #     if test_df is not None:
+    #         st.metric("Số phiên test", len(test_df))
+    #     if metrics_df is not None:
+    #         st.metric("Số mô hình", len(metrics_df))
+    #     if backtest_df is not None:
+    #         st.metric("Backtesting", "✅ Đã chạy")
 
 # ==================== PAGE: HIỆU SUẤT MÔ HÌNH ====================
 elif page == "Hiệu suất Mô hình":
@@ -107,7 +107,29 @@ elif page == "Hiệu suất Mô hình":
     
     if metrics_df is not None and not metrics_df.empty:
         st.subheader("📊 Bảng so sánh")
-        st.dataframe(metrics_df, use_container_width=True)
+        
+        # Hàm tô màu chỉ số tốt nhất
+        def highlight_best(s):
+            if s.name in ['Direction_Accuracy', 'R2']:
+                is_best = s == s.max()
+                return ['background-color: #d4edda; color: #155724' if v else '' for v in is_best]
+            elif s.name in ['RMSE', 'MAE', 'MSE']:
+                is_best = s == s.min()
+                return ['background-color: #d4edda; color: #155724' if v else '' for v in is_best]
+            return ['' for _ in range(len(s))]
+
+        # Format và hiển thị bảng
+        st.dataframe(
+            metrics_df.style
+            .apply(highlight_best)
+            .format({
+                "RMSE": "{:.4f}",
+                "MAE": "{:.4f}", 
+                "R2": "{:.4f}", 
+                "Direction_Accuracy": "{:.2f}%"
+            }),
+            use_container_width=True
+        )
         
         st.info("""
         **Lưu ý**: R² thấp (0.05-0.15) là **BÌN THƯỜNG** với dữ liệu tài chính!
@@ -148,7 +170,33 @@ elif page == "Backtesting":
     
     if backtest_df is not None and not backtest_df.empty:
         st.subheader("📊 So sánh chiến lược")
-        st.dataframe(backtest_df, use_container_width=True)
+        
+        # Xử lý hiển thị: Thêm % và định dạng tiền tệ
+        display_df = backtest_df.copy()
+        if 'Metric' in display_df.columns:
+            display_df.set_index('Metric', inplace=True)
+            
+        def format_value(val, metric_name):
+            if not isinstance(val, (int, float)):
+                return val
+                
+            if '(%)' in metric_name:
+                return f"{val:.2f}%"
+            elif '(VND)' in metric_name:
+                # Format: 1,000,000 -> 1.000.000
+                return "{:,.0f}".format(val).replace(",", ".")
+            elif 'Sharpe' in metric_name:
+                return f"{val:.2f}"
+            elif 'Num Trades' in metric_name:
+                return f"{val:.0f}"
+            else:
+                return f"{val:.4f}"
+
+        # Apply formatting
+        for col in display_df.columns:
+            display_df[col] = [format_value(v, i) for i, v in zip(display_df.index, display_df[col])]
+
+        st.dataframe(display_df, use_container_width=True)
         
         st.subheader("📈 Biểu đồ Portfolio")
         backtest_chart = os.path.join(figures_dir, "backtesting_comparison.png")
